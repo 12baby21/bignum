@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stdio.h>
+#include <assert.h>
 #include "bn.h"
 using namespace std;
 /* Functions for shifting number in-place. */
@@ -48,6 +49,7 @@ bignum::bignum(uint64_t num)
 
 bignum one(1);
 bignum zero(0);
+bignum two(2);
 
 void bn_assign(bignum *op1, bignum *op2)
 {
@@ -393,4 +395,94 @@ static void _rshift_word(bignum* a, int nwords)
 
 
 /* functions for big primes */
- 
+// Miller-Rabin Prime Test
+/*使用三个rand()生成伪随机数组合生成一个奇数随机数，作为伪素数 
+**系统时间为种子 
+**并返回生成的这个大奇数 
+*/ 
+unsigned int ProduceRandomOdd(){
+    //UINT无符号整形，各伪随机数放在RandomArray数组中 
+    time_t t;//c++时间类型 
+    unsigned int RandomNumber;//记录随机数 
+	do{
+    
+		srand((unsigned)time(&t));//srand(seed)用于给rand()函数设定种子,此处用系统时间
+		//生成 
+        RandomNumber=(rand()<<17)|(rand()<<3)|(rand()); 
+        //cout<<RandomNumber<<endl;
+	}while(RandomNumber%2==0||RandomNumber<100000000); 
+	//返回   
+	return RandomNumber;
+}
+
+//模重复平方算法求(b^n)%m
+size_t repeatMod(size_t base, size_t n, size_t mod){
+    
+    size_t a = 1;
+    while(n){
+    
+        if(n&1){
+    
+            a=(a*base)%mod;
+        }
+        base=(base*base)%mod;
+        n=n>>1;
+    }
+    return a;
+}
+
+//Miller-Rabin素数检测
+bool rabinmiller(size_t n, size_t k){
+    
+	
+    int s=0;
+    int temp=n-1;    
+	
+	//将n-1表示为(2^s)*t  
+    while ((temp&0x1)==0&&temp){
+    
+        temp=temp>>1;
+        s++;
+    }   
+    size_t t = temp;
+    
+	//判断k轮误判概率不大于(1/4)^k
+    while(k--){
+    
+        srand((unsigned)time(0));
+        size_t b = rand()%(n-2)+2; //生成一个b(2≤a ≤n-2)
+
+        size_t y = repeatMod(b,t,n); 
+        if (y == 1 || y == (n-1))
+            return true;
+        for(int j = 1; j<=(s-1) && y != (n-1); ++j){
+    
+            y = repeatMod(y,2,n);
+            if (y == 1)
+                return false;
+        }
+        if (y != (n-1))
+            return false;
+    }
+    return true;
+}
+
+
+
+bool is_probable_prime(bignum *num, int trials)
+{
+	int isLarger = bn_cmp(num, &two);
+	assert(isLarger == 1);
+	if(isLarger == 0)
+		return true;
+	bignum residual;
+	bn_mod(&residual, num, &two);
+
+	int s = 0;
+	bignum d;
+	bn_sub(&d, num, &one);
+	// To present n - 1 as 2^s * d
+	while(trails)
+
+
+}
