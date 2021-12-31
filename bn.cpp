@@ -390,3 +390,7 @@ static void _rshift_word(bignum* a, int nwords)
 		a->array[i+3] = z;
 	}
 }
+
+
+/* functions for big primes */
+ 

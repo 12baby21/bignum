@@ -2,7 +2,7 @@
 #include "bn.h"
 #include "time.h"
 using namespace std;
-
+// ...
 int main()
 {
     bignum a(1024);
