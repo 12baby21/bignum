@@ -207,18 +207,20 @@ void bn_pow(bignum* res, bignum* base, bignum* power)
 
 void bn_mod(bignum* res, bignum* a, bignum* b)
 {	
-	bignum tmp;
-	bignum tmp_a;
-	bn_assign(&tmp_a, a);
+	bignum mulcb;
+	bignum temp_res;
 	bignum c;
-	/* c = (a / b) */
-  	bn_div(&c, &tmp_a, b);
 
-	/* tmp = (c * b) */
-	bn_mul(&tmp, &c, b);
+	/* c = (a / b) */
+  	bn_div(&c, a, b);
+
+	/* mulcb = (c * b) */
+	bn_mul(&mulcb, &c, b);
 
 	/* c = a - tmp */
-	bn_sub(res, a, &tmp);
+	bn_sub(&temp_res, a, &mulcb);
+
+	bn_assign(res, &temp_res);
 }
 
 void bn_qmod(bignum* res, bignum* a, bignum* b, bignum* c)
@@ -291,6 +293,7 @@ int bn_cmp(bignum *op1, bignum *op2)
 	} while (i != 0);
 	return 0;
 }
+
 void bn_invert(bn_ptr lambdainvert, bn_ptr lambda, bn_ptr n)
 {
 	bn gcds, gcdt, gcdgcd;
@@ -474,7 +477,7 @@ bool rabinmiller(size_t n, size_t k){
     return true;
 }
 
-
+/**
 
 bool is_probable_prime(bignum *num, int trials)
 {
@@ -493,3 +496,5 @@ bool is_probable_prime(bignum *num, int trials)
 
 
 }
+
+**/
