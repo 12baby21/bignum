@@ -147,6 +147,7 @@ void bn_div(bignum* res, bignum* dividend, bignum* divisor)
 	bignum current(1);
 	bignum denom;		// fenmu
 	bignum tmp;
+	bignum tmp_res;
 	bn_assign(&denom, divisor);
 	bn_assign(&tmp, dividend);
 
@@ -174,11 +175,12 @@ void bn_div(bignum* res, bignum* dividend, bignum* divisor)
 		if (bn_cmp(&tmp, &denom) != SMALLER)  //   if (dividend >= denom)
 		{
 		bn_sub(&tmp, &tmp, &denom);         //     dividend -= denom;
-		bn_or(res, &current, res);              //     answer |= current;
+		bn_or(&tmp_res, &current, &tmp_res);              //     answer |= current;
 		}
 		_rshift_one_bit(&current);                //   current >> 1;
 		_rshift_one_bit(&denom);                  //   denom >> 1;
 	}                                           // return answer;
+	bn_assign(res, &tmp_res);
 }
 
 void bn_pow(bignum* res, bignum* base, bignum* power)
@@ -229,17 +231,29 @@ void bn_qmod(bignum* res, bignum* a, bignum* b, bignum* c)
 	for(int i = 0; i < BN_ARRAY_SIZE; i++)
 	{
 		DTYPE pow = b->array[i];
-		while(pow)
+		if(pow == 0)
 		{
-			if(pow & 1)
+			for(int j = 0; j < WORD_SIZE * 8; j++)
 			{
-				bn_mul(res, res, a);
-				bn_mod(res, res, c);
-			}				
-			bn_mul(a, a, a);
-			bn_mod(a, a, c);
-			pow = pow >> 1;
+				bn_mul(a, a, a);
+				bn_mod(a, a, c);
+			}
 		}
+		else
+		{
+			while(pow)
+			{
+				if(pow & 1)
+				{
+					bn_mul(res, res, a);
+					bn_mod(res, res, c);
+				}				
+				bn_mul(a, a, a);
+				bn_mod(a, a, c);
+				pow = pow >> 1;
+			}
+		}
+		
 	}
 }
 
@@ -405,34 +419,29 @@ static void _rshift_word(bignum* a, int nwords)
 
 
 /* functions for big primes */
-
-/*使用三个rand()生成伪随机数组合生成一个奇数随机数，作为伪素数 
-**系统时间为种子 
-**并返回生成的这个大奇数 
-*/ 
-unsigned int ProduceRandomOdd(){
-    //UINT无符号整形，各伪随机数放在RandomArray数组中 
-    time_t t;//c++时间类型 
+void ProduceRandomOdd(bn_ptr RandNum)
+{
+    time_t t; 
     unsigned int RandomNumber;//记录随机数 
-	do{
-    
-		srand((unsigned)time(&t));//srand(seed)用于给rand()函数设定种子,此处用系统时间
-		//生成 
-        RandomNumber=(rand()<<17)|(rand()<<3)|(rand()); 
-        //cout<<RandomNumber<<endl;
-	}while(RandomNumber%2==0||RandomNumber<100000000); 
-	//返回   
-	return RandomNumber;
+	for(int i = 1; i < BN_ARRAY_SIZE; i++)
+	{
+		srand((unsigned)time(&t));   // seed
+        RandomNumber = rand(); 
+		RandNum->array[i] = RandomNumber;
+	}
+	do
+	{
+		RandomNumber = rand();
+	} while(RandomNumber%2 == 0);
+	RandNum->array[0] = RandomNumber;
 }
-
+/**
 //模重复平方算法求(b^n)%m
 size_t repeatMod(size_t base, size_t n, size_t mod){
     
     size_t a = 1;
     while(n){
-    
         if(n&1){
-    
             a=(a*base)%mod;
         }
         base=(base*base)%mod;
@@ -442,23 +451,27 @@ size_t repeatMod(size_t base, size_t n, size_t mod){
 }
 
 //Miller-Rabin素数检测
-bool rabinmiller(size_t n, size_t k){
-    
+bool rabinmiller(bn_ptr n, int trails){	
+    int s = 0;
+	bn temp;
+	bn_sub(&temp, n, &one); 
 	
-    int s=0;
-    int temp=n-1;    
-	
-	//将n-1表示为(2^s)*t  
-    while ((temp&0x1)==0&&temp){
-    
-        temp=temp>>1;
-        s++;
-    }   
-    size_t t = temp;
+	// 将n-1表示为(2^s)*t
+	for(int i = 0; i < BN_ARRAY_SIZE; ++i)
+	{
+		DTYPE tmp = temp.array[i];
+		while((tmp & 0x1) == 0 && tmp)
+		{
+			tmp = tmp >> 1;
+			s++;
+		}
+		temp.array[i] = tmp;
+	}
+	bn t;
+	bn_assign(&t, &temp);
     
 	//判断k轮误判概率不大于(1/4)^k
-    while(k--){
-    
+    while(trails--){
         srand((unsigned)time(0));
         size_t b = rand()%(n-2)+2; //生成一个b(2≤a ≤n-2)
 

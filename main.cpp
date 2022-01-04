@@ -37,9 +37,7 @@ int main()
     cout<<"m:"<<endl;
     bn_print(&m);
     cout<<endl;
-    cout<<"c:"<<endl;
-    bn_print(&c);
-    cout<<endl;
+
     cout<<"res:"<<endl;
     bn_print(&res);
 

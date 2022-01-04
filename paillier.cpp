@@ -55,9 +55,20 @@ void Decryption(bn_ptr res, bn_ptr c, bn_ptr lambda, bn_ptr n, bn_ptr n_2)
     bn l;
     cout<<"c = g^m * r^n mod n^2:"<<endl;
     bn_print(c);
+    cout<<endl;
+    cout<<"c^lambda mod n^2:"<<endl;
     bn_qmod(&l, c, lambda, n_2);
+    bn_print(&l);
+    cout<<endl;
     bn_sub(&l, &l, &yi);
-    bn_div(&l, &l, n);
+    cout<<"l = c^lambda mod n^2-1:"<<endl;
+    bn_print(&l);
+    cout<<endl;
+    bignum l1_n;    // (l-1) / n
+    bn_div(&l1_n, &l, n);
+    cout<<"l = (l-1)/n:"<<endl;
+    bn_print(&l1_n);
+    cout<<endl;
 
     bn lambdainvert;
     bn_invert(&lambdainvert, lambda, n);

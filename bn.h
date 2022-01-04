@@ -146,6 +146,13 @@ int bn_numbits(bignum *bn);
 /* print the bignum in hex type */
 void bn_print(bignum* num);               
 
+
+/* functions for big primes */
+/* Generate a random odd number */
+void ProduceRandomOdd(bn_ptr RandNum);
+
+
+
 #endif /* #ifndef __BIGNUM_H__ */
 
 
