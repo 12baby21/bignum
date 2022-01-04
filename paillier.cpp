@@ -32,7 +32,7 @@ void GenKey(uint64_t bits, bignum* n, bignum* g, bignum* lambda, bignum* mu, big
     bn_mul(n_2, n, n);
 }
 
-void Encryption(bignum* c, bignum* m, bignum* g, bignum* n, bignum* n_2)
+void Encryption(bn_ptr c, bn_ptr m, bn_ptr g, bn_ptr n, bn_ptr n_2)
 {
     // Random Key
     bignum r(11);

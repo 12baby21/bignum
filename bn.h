@@ -135,7 +135,7 @@ void bn_inc(bignum* n);
 /* Decrement: sub one from n */                        
 void bn_dec(bignum* n); 
 /* invert */
-void bn_invert(bn_ptr lambdainvert, bn_ptr lambda, bn_ptr n)
+void bn_invert(bn_ptr lambdainvert, bn_ptr lambda, bn_ptr n);
 
 
 /* Utility Functions */
