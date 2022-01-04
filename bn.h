@@ -90,7 +90,8 @@ public:
 	bignum(uint64_t num);
 };
 
-
+#define bn_ptr bignum*
+#define bn bignum
 
 /* Tokens returned by bignum_cmp() for value comparison */
 enum { SMALLER = -1, EQUAL = 0, LARGER = 1 };
@@ -132,7 +133,9 @@ bool bn_is_zero(bignum* n);
 /* Increment: add one to n */                      
 void bn_inc(bignum* n);    
 /* Decrement: sub one from n */                        
-void bn_dec(bignum* n);                             
+void bn_dec(bignum* n); 
+/* invert */
+void bn_invert(bn_ptr lambdainvert, bn_ptr lambda, bn_ptr n)
 
 
 /* Utility Functions */

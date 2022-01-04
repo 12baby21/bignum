@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include "bn.h"
+#include "common.h"
 using namespace std;
 /* Functions for shifting number in-place. */
 static void _lshift_one_bit(bignum* a);
@@ -50,6 +51,8 @@ bignum::bignum(uint64_t num)
 bignum one(1);
 bignum zero(0);
 bignum two(2);
+
+
 
 void bn_assign(bignum *op1, bignum *op2)
 {
@@ -205,9 +208,11 @@ void bn_pow(bignum* res, bignum* base, bignum* power)
 void bn_mod(bignum* res, bignum* a, bignum* b)
 {	
 	bignum tmp;
+	bignum tmp_a;
+	bn_assign(&tmp_a, a);
 	bignum c;
 	/* c = (a / b) */
-  	bn_div(&c, a, b);
+  	bn_div(&c, &tmp_a, b);
 
 	/* tmp = (c * b) */
 	bn_mul(&tmp, &c, b);
@@ -286,9 +291,11 @@ int bn_cmp(bignum *op1, bignum *op2)
 	} while (i != 0);
 	return 0;
 }
-
-
-
+void bn_invert(bn_ptr lambdainvert, bn_ptr lambda, bn_ptr n)
+{
+	bn gcds, gcdt, gcdgcd;
+	extended_euclidean(lambdainvert, &gcdt, &gcdgcd, lambda, n);
+}
 
 
 int bn_getbit(const bignum* a, int n)
@@ -395,7 +402,7 @@ static void _rshift_word(bignum* a, int nwords)
 
 
 /* functions for big primes */
-// Miller-Rabin Prime Test
+
 /*使用三个rand()生成伪随机数组合生成一个奇数随机数，作为伪素数 
 **系统时间为种子 
 **并返回生成的这个大奇数 
