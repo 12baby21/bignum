@@ -437,7 +437,6 @@ void ProduceRandomOdd(bn_ptr RandNum)
 	RandNum->array[0] = RandomNumber;
 }
 
-//Miller-Rabin素数检测
 bool rabinmiller(bn_ptr n, int trails)
 {	
     int s = 0;
@@ -445,40 +444,53 @@ bool rabinmiller(bn_ptr n, int trails)
 	bn n_1;		// n-1
 	bn_sub(&temp, n, &one); 
 	bn_sub(&n_1, n, &one); 
+	cout << "temp:" << endl;
+	bn_print(&temp);
+	cout << "n_1:" << endl;
+	bn_print(&n_1);
 
 	// 将n-1表示为(2^s)*t
-	bool flag = true;
-	for(int i = 0; i < BN_ARRAY_SIZE && flag; ++i)
+	int thisBit = temp.array[0] & 0x1;
+	cout << "thisBit = " << thisBit << endl;
+	int isZero = bn_is_zero(&temp);
+	cout << "isZero = " << isZero << endl;
+	while(thisBit == 0 && !isZero)
 	{
-		int thisBit = temp.array[0] & 0x1;
-		int isZero = bn_cmp(&temp, &zero);
-		while(thisBit == 0 && !isZero)
-		{
-			_rshift_one_bit(&temp);
-			s++;
-			thisBit = temp.array[0] & 0x1;
-			isZero = bn_cmp(&temp, &zero);
+		cout << "thisBit = " << thisBit << endl;
+		_rshift_one_bit(&temp);
+		cout << "temp:" << endl;
+		bn_print(&temp);
+		s++;
+		thisBit = temp.array[0] & 0x1;
+		isZero = bn_is_zero(&temp);
 
-		}
 	}
 	bn t;                   
 	bn_assign(&t, &temp);
+	cout << "t:" << endl;
+	bn_print(&t);
     
 	// trials times Miller-Rabin test
     while(trails--)
 	{
-        bignum b(primes[trails]);
+        bignum b(primes[0]);
 		bignum y;
-		bn_qmod(&y, &b, &t, n); 
-		bool cmp1 = bn_cmp(&y, &one);
-		bool cmp2 = bn_cmp(&y, &n_1);
-        if (cmp1 || cmp2)
+
+		bn_qmod(&y, &b, &t, n);
+		cout << "y:" << endl;
+		bn_print(&y); 
+
+		int cmp1 = bn_cmp(&y, &one);
+		int cmp2 = bn_cmp(&y, &n_1);
+		cout << "cmp1 = " << cmp1 << endl;
+		cout << "cmp2 = " << cmp2 << endl;
+        if (cmp1 == 0 || cmp2 == 0)
             return true;
 		// y != n-1
         for(int j = 1; j <= (s-1) && bn_cmp(&y, &n_1) != 0; ++j)
 		{
             bn_qmod(&y, &y, &two, n);
-            if (bn_cmp(&y, &one))
+            if (bn_cmp(&y, &one) == 0)
                 return false;
         }
         if (bn_cmp(&y, &n_1) != 0)

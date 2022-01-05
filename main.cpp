@@ -4,7 +4,7 @@
 #include "common.h"
 using namespace std;
 
-
+/**
 int main()
 {
     bn m(1);
@@ -43,4 +43,20 @@ int main()
 
     return 0;
 }
+**/
+int main()
+{
+    bn RandNum(327);
+    //ProduceRandomOdd(&RandNum);
+    cout << "We have generated a random number:" << endl; 
+    bn_print(&RandNum);
+    bool isPrime = rabinmiller(&RandNum, 5);
+    cout << "This number ";
+    if(isPrime)
+        cout << "is ";
+    else
+        cout << "isn't ";
+    cout << "a prime number!" << endl;
 
+    return 0;
+}

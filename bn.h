@@ -152,7 +152,8 @@ void bn_print(bignum* num);
 /* functions for big primes */
 /* Generate a random odd number */
 void ProduceRandomOdd(bn_ptr RandNum);
-
+/* Miller-Rabin Prime Test */
+bool rabinmiller(bn_ptr n, int trails);
 
 
 #endif /* #ifndef __BIGNUM_H__ */
