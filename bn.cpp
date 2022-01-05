@@ -435,13 +435,16 @@ void ProduceRandomOdd(bn_ptr RandNum)
 		RandomNumber = rand();
 	} while(RandomNumber%2 == 0);
 	RandNum->array[0] = RandomNumber;
-}/**
+}
+
 //Miller-Rabin素数检测
 bool rabinmiller(bn_ptr n, int trails)
 {	
     int s = 0;
 	bn temp;
+	bn n_1;		// n-1
 	bn_sub(&temp, n, &one); 
+	bn_sub(&n_1, n, &one); 
 
 	// 将n-1表示为(2^s)*t
 	bool flag = true;
@@ -467,38 +470,20 @@ bool rabinmiller(bn_ptr n, int trails)
         bignum b(primes[trails]);
 		bignum y;
 		bn_qmod(&y, &b, &t, n); 
-        if (y == 1 || y == (n-1))
+		bool cmp1 = bn_cmp(&y, &one);
+		bool cmp2 = bn_cmp(&y, &n_1);
+        if (cmp1 || cmp2)
             return true;
-        for(int j = 1; j<=(s-1) && y != (n-1); ++j){
-    
-            y = repeatMod(y,2,n);
-            if (y == 1)
+		// y != n-1
+        for(int j = 1; j <= (s-1) && bn_cmp(&y, &n_1) != 0; ++j)
+		{
+            bn_qmod(&y, &y, &two, n);
+            if (bn_cmp(&y, &one))
                 return false;
         }
-        if (y != (n-1))
+        if (bn_cmp(&y, &n_1) != 0)
             return false;
     }
     return true;
 }
 
-/**
-
-bool is_probable_prime(bignum *num, int trials)
-{
-	int isLarger = bn_cmp(num, &two);
-	assert(isLarger == 1);
-	if(isLarger == 0)
-		return true;
-	bignum residual;
-	bn_mod(&residual, num, &two);
-
-	int s = 0;
-	bignum d;
-	bn_sub(&d, num, &one);
-	// To present n - 1 as 2^s * d
-	while(trails)
-
-
-}
-
-**/
