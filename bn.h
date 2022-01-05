@@ -81,6 +81,8 @@ There may well be room for performance-optimizations and improvements.
 #define require(p, msg) assert(p && #msg)
 
 
+
+
 class bignum
 {
 public:
@@ -90,8 +92,8 @@ public:
 	bignum(uint64_t num);
 };
 
-#define bn_ptr bignum*
-#define bn bignum
+typedef bignum* bn_ptr;
+typedef bignum bn;
 
 /* Tokens returned by bignum_cmp() for value comparison */
 enum { SMALLER = -1, EQUAL = 0, LARGER = 1 };

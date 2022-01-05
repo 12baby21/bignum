@@ -3,6 +3,7 @@
 #include <assert.h>
 #include "bn.h"
 #include "common.h"
+#include "primes.h"
 using namespace std;
 /* Functions for shifting number in-place. */
 static void _lshift_one_bit(bignum* a);
@@ -227,7 +228,7 @@ void bn_mod(bignum* res, bignum* a, bignum* b)
 
 void bn_qmod(bignum* res, bignum* a, bignum* b, bignum* c)
 {
-	bn_assign(res, 1);
+	bn tmp_res(1);
 	for(int i = 0; i < BN_ARRAY_SIZE; i++)
 	{
 		DTYPE pow = b->array[i];
@@ -245,16 +246,16 @@ void bn_qmod(bignum* res, bignum* a, bignum* b, bignum* c)
 			{
 				if(pow & 1)
 				{
-					bn_mul(res, res, a);
-					bn_mod(res, res, c);
+					bn_mul(&tmp_res, &tmp_res, a);
+					bn_mod(&tmp_res, &tmp_res, c);
 				}				
 				bn_mul(a, a, a);
 				bn_mod(a, a, c);
 				pow = pow >> 1;
 			}
 		}
-		
 	}
+	bn_assign(res, &tmp_res);
 }
 
 void bn_inc(bignum* n)
@@ -434,48 +435,38 @@ void ProduceRandomOdd(bn_ptr RandNum)
 		RandomNumber = rand();
 	} while(RandomNumber%2 == 0);
 	RandNum->array[0] = RandomNumber;
-}
-/**
-//模重复平方算法求(b^n)%m
-size_t repeatMod(size_t base, size_t n, size_t mod){
-    
-    size_t a = 1;
-    while(n){
-        if(n&1){
-            a=(a*base)%mod;
-        }
-        base=(base*base)%mod;
-        n=n>>1;
-    }
-    return a;
-}
-
+}/**
 //Miller-Rabin素数检测
-bool rabinmiller(bn_ptr n, int trails){	
+bool rabinmiller(bn_ptr n, int trails)
+{	
     int s = 0;
 	bn temp;
 	bn_sub(&temp, n, &one); 
-	
+
 	// 将n-1表示为(2^s)*t
-	for(int i = 0; i < BN_ARRAY_SIZE; ++i)
+	bool flag = true;
+	for(int i = 0; i < BN_ARRAY_SIZE && flag; ++i)
 	{
-		DTYPE tmp = temp.array[i];
-		while((tmp & 0x1) == 0 && tmp)
+		int thisBit = temp.array[0] & 0x1;
+		int isZero = bn_cmp(&temp, &zero);
+		while(thisBit == 0 && !isZero)
 		{
-			tmp = tmp >> 1;
+			_rshift_one_bit(&temp);
 			s++;
+			thisBit = temp.array[0] & 0x1;
+			isZero = bn_cmp(&temp, &zero);
+
 		}
-		temp.array[i] = tmp;
 	}
-	bn t;
+	bn t;                   
 	bn_assign(&t, &temp);
     
-	//判断k轮误判概率不大于(1/4)^k
-    while(trails--){
-        srand((unsigned)time(0));
-        size_t b = rand()%(n-2)+2; //生成一个b(2≤a ≤n-2)
-
-        size_t y = repeatMod(b,t,n); 
+	// trials times Miller-Rabin test
+    while(trails--)
+	{
+        bignum b(primes[trails]);
+		bignum y;
+		bn_qmod(&y, &b, &t, n); 
         if (y == 1 || y == (n-1))
             return true;
         for(int j = 1; j<=(s-1) && y != (n-1); ++j){
