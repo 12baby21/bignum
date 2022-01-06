@@ -95,6 +95,7 @@ public:
 typedef bignum* bn_ptr;
 typedef bignum bn;
 
+
 /* Tokens returned by bignum_cmp() for value comparison */
 enum { SMALLER = -1, EQUAL = 0, LARGER = 1 };
 
@@ -142,7 +143,9 @@ void bn_invert(bn_ptr lambdainvert, bn_ptr lambda, bn_ptr n);
 
 /* Utility Functions */
 /* get the n-th bit of a */
-int bn_getbit(const bignum* a, int n);        
+int bn_getbit(const bignum* a, int n);
+/* set the n-th bit to 1 */
+void bn_setbit(const bn_ptr a, int n);
 /* return the bits number of bn */
 int bn_numbits(bignum *bn);               
 /* print the bignum in hex type */
@@ -150,6 +153,9 @@ void bn_print(bignum* num);
 
 
 /* functions for big primes */
+
+/* Calculate trail number */
+int calc_trial_divisions(int bits);
 /* Generate a random odd number */
 void ProduceRandomOdd(bn_ptr RandNum);
 /* Miller-Rabin Prime Test */
