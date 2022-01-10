@@ -157,10 +157,11 @@ void bn_print(bignum* num);
 /* Calculate trail number */
 int calc_trial_divisions(int bits);
 /* Generate a random odd number */
-void ProduceRandomOdd(bn_ptr RandNum);
+void ProduceRandom(bn_ptr RandNum);
 /* Miller-Rabin Prime Test */
 bool rabinmiller(bn_ptr n, int trails);
-
+/* set p as the next prime of n */
+void bn_nextprime(bn_ptr p, bn_ptr n);
 
 #endif /* #ifndef __BIGNUM_H__ */
 

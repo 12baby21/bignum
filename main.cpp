@@ -46,32 +46,19 @@ int main()
 **/
 int main()
 {
-    bn RandNum;
-    ProduceRandomOdd(&RandNum);
-    bool flag = false;
+    bn RandNum(14292);
+    ProduceRandom(&RandNum);
     clock_t start = clock();
-    while (!flag)
-    {
-        cout << "We have generated a random number:" << endl;
-        bn_print(&RandNum);
-        int trails = calc_trial_divisions(1024);
 
-        bool isPrime = rabinmiller(&RandNum, trails);
+    cout << "We have generated a random number:" << endl;
+    bn_print(&RandNum);
 
-        cout << "This number ";
-        if (isPrime)
-        {
-            flag = true;
-            cout << "is ";
-        }
-        else
-        {
-            bn two(2);
-            cout << "isn't ";
-            bn_add(&RandNum, &RandNum, &two);
-        }
-        cout << "a prime number!" << endl;
-    }
+    bn p;
+    bn_nextprime(&p, &RandNum);
+    //cout << rabinmiller(&RandNum, 25)<<endl;
+    cout << "The next prime of RandNum is: ";
+    bn_print(&p);
+
     clock_t finish = clock();
     cout << "Time elapsed:" << dec << finish - start << "us" << endl;
     return 0;

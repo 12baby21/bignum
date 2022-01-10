@@ -48,9 +48,10 @@ bignum::bignum(uint64_t num)
 #endif
 }
 
-bignum one(1);
-bignum zero(0);
-bignum two(2);
+bn one(1);
+bn zero(0);
+bn two(2);
+bn seven(7);
 
 void bn_assign(bignum *op1, bignum *op2)
 {
@@ -436,23 +437,18 @@ int calc_trial_divisions(int bits)
 	return 2048;
 }
 
-void ProduceRandomOdd(bn_ptr RandNum)
+void ProduceRandom(bn_ptr RandNum)
 {
 	clock_t t;
 	unsigned int RandomNumber; //记录随机数
 
-	for (int i = 1; i < BN_ARRAY_SIZE; i++)
+	for (int i = 0; i < BN_ARRAY_SIZE; i++)
 	{
 		t = clock();
 		srand((unsigned)t); // seed
 		RandomNumber = rand();
 		RandNum->array[i] = RandomNumber;
 	}
-
-	do
-	{
-		RandomNumber = rand();
-	} while (RandomNumber % 2 == 0);
 	RandNum->array[0] = RandomNumber;
 	RandNum->array[BN_ARRAY_SIZE - 1] |= 0x10000000;
 }
@@ -482,7 +478,7 @@ bool rabinmiller(bn_ptr n, int trails)
 	// trials times Miller-Rabin test
 	while (trails--)
 	{
-		bignum b(primes[2048 - trails]);
+		bignum b(primes[trails]);
 		bignum y;
 
 		bn_qmod(&y, &b, &t, n);
@@ -504,45 +500,36 @@ bool rabinmiller(bn_ptr n, int trails)
 	return true;
 }
 
-void bn_nextprime(bn_ptr p, mpz_srcptr n)
+void bn_nextprime(bn_ptr p, bn_ptr n)
 {
 	unsigned long difference;
 	int i;
 	unsigned prime_limit;
 	unsigned long prime;
-	mp_size_t pn;
-	mp_bitcnt_t nbits;
 	unsigned incr;
-	TMP_SDECL;
 
 	/* First handle tiny numbers */
-	// if n < 2, return p = 2 as a prime
+	// if n < 2, p = 2 is the next prime
 	if (bn_cmp(n, &two) < 0)
 	{
 		bn_assign(p, &two);
 		return;
 	}
-	// if n >= 2, p = an odd > p
-	bn_inc(p);
+
+	// if n >= 2, set p as an odd larger or equal to n
+	bn_add(p, n, &one);
 	bn_setbit(p, 0);
 
-	bn seven(7);
 	// if p <= 7, i.e. p = 5 or 7, then p is a prime
 	if (bn_cmp(p, &seven) <= 0)
 		return;
-
-	pn = SIZ(p);
-	MPN_SIZEINBASE_2EXP(nbits, PTR(p), pn, 1);
-	if (nbits / 2 >= NUMBER_OF_PRIMES)
-		prime_limit = NUMBER_OF_PRIMES - 1;
-	else
-		prime_limit = nbits / 2;
+	
+	prime_limit = 166;
 
 	/* Compute residues modulo small odd primes */
-	bn moduli[167];
-
+	bn moduli[166];
 	for (;;)
-	{	
+	{
 		// prime[1]
 		for (i = 0; i < prime_limit; i++)
 		{
@@ -550,7 +537,7 @@ void bn_nextprime(bn_ptr p, mpz_srcptr n)
 			bn_mod(moduli+i, p, &prime);
 		}
 
-#define INCR_LIMIT 0x10000 /* deep science */
+#define INCR_LIMIT 0x10 /* deep science */
 		bn diff;
 		for (difference = incr = 0; incr < INCR_LIMIT; difference += 2)
 		{
@@ -574,11 +561,14 @@ void bn_nextprime(bn_ptr p, mpz_srcptr n)
 			difference = 0;
 
 			/* Miller-Rabin test */
+			// if test passed, then p is probable a prime
 			if (rabinmiller(p, 25))
 				return;
 			incr += 2;
 		}
 		bn_add(p, p, &diff);
+		bn_print(p);
 		difference = 0;
+		
 	}
 }
