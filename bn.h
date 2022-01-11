@@ -39,7 +39,6 @@ There may well be room for performance-optimizations and improvements.
 
 
 #define BN_ARRAY_SIZE ((BITS / WORD_SIZE / 8))
-#define BN_ARRAY_SIZE_MUL 2 * BN_ARRAY_SIZE
 
 
 /* Here comes the compile-time specialization for how large the underlying array size should be. */

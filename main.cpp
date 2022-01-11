@@ -46,8 +46,8 @@ int main()
 **/
 int main()
 {
-    bn RandNum(14292);
-    ProduceRandom(&RandNum);
+    bn RandNum(13698226578992222);
+    //ProduceRandom(&RandNum);
     clock_t start = clock();
 
     cout << "We have generated a random number:" << endl;

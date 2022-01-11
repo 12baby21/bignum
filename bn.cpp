@@ -449,7 +449,6 @@ void ProduceRandom(bn_ptr RandNum)
 		RandomNumber = rand();
 		RandNum->array[i] = RandomNumber;
 	}
-	RandNum->array[0] = RandomNumber;
 	RandNum->array[BN_ARRAY_SIZE - 1] |= 0x10000000;
 }
 
@@ -478,7 +477,7 @@ bool rabinmiller(bn_ptr n, int trails)
 	// trials times Miller-Rabin test
 	while (trails--)
 	{
-		bignum b(primes[trails]);
+		bignum b(primes[100 - trails]);
 		bignum y;
 
 		bn_qmod(&y, &b, &t, n);
@@ -537,7 +536,7 @@ void bn_nextprime(bn_ptr p, bn_ptr n)
 			bn_mod(moduli+i, p, &prime);
 		}
 
-#define INCR_LIMIT 0x10 /* deep science */
+#define INCR_LIMIT 0x10000 /* deep science */
 		bn diff;
 		for (difference = incr = 0; incr < INCR_LIMIT; difference += 2)
 		{
@@ -569,6 +568,5 @@ void bn_nextprime(bn_ptr p, bn_ptr n)
 		bn_add(p, p, &diff);
 		bn_print(p);
 		difference = 0;
-		
 	}
 }
