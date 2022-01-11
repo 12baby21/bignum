@@ -1,3 +1,8 @@
+/** TODO List
+ **	NTT multiplication
+ ** paillier	
+ * 
+**/
 #include <iostream>
 #include <stdio.h>
 #include <assert.h>
