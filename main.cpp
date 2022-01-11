@@ -5,6 +5,7 @@
 using namespace std;
 
 /**
+ * invert module
 int main()
 {
     bn m(1);
@@ -44,22 +45,24 @@ int main()
     return 0;
 }
 **/
+
 int main()
 {
-    bn RandNum(13698226578992222);
-    //ProduceRandom(&RandNum);
     clock_t start = clock();
+
+    bn RandNum(551541242518964165);
+    //ProduceRandom(&RandNum);
+    RandNum.array[0] |= 1;
 
     cout << "We have generated a random number:" << endl;
     bn_print(&RandNum);
 
     bn p;
     bn_nextprime(&p, &RandNum);
-    //cout << rabinmiller(&RandNum, 25)<<endl;
     cout << "The next prime of RandNum is: ";
     bn_print(&p);
 
     clock_t finish = clock();
-    cout << "Time elapsed:" << dec << finish - start << "us" << endl;
+    cout << "Time elapsed:" << dec << 1.0 * (finish - start) / CLOCKS_PER_SEC << "s" << endl;
     return 0;
 }

@@ -51,6 +51,8 @@ bignum::bignum(uint64_t num)
 bn one(1);
 bn zero(0);
 bn two(2);
+bn three(3);
+bn five(5);
 bn seven(7);
 
 void bn_assign(bignum *op1, bignum *op2)
@@ -90,6 +92,27 @@ void bn_add(bignum *res, bignum *op1, bignum *op2)
 		tmp = (DTYPE_TMP)op1->array[i] + op2->array[i] + carry;
 		carry = (tmp > MAX_VAL);
 		res->array[i] = (tmp & MAX_VAL);
+	}	
+}
+
+void bn_add_ui(bn_ptr res, bn_ptr op1, uint32_t op2)
+{
+	DTYPE_TMP tmp;
+	int carry = 0;
+	for(int i = 0; i < BN_ARRAY_SIZE; ++i)
+	{
+		tmp = (DTYPE_TMP)op1->array[i] + op2 + carry;
+		carry = (tmp > MAX_VAL);
+		res->array[i] = (tmp & MAX_VAL);
+		// if carry is 0, there is no need to calculate the higher position
+		if(carry ==  0)
+		{
+			for(int j = i+1; j <BN_ARRAY_SIZE; ++j)
+			{
+				res->array[j] = op1->array[j];
+			}
+			break;
+		}
 	}
 }
 
@@ -449,7 +472,8 @@ void ProduceRandom(bn_ptr RandNum)
 		RandomNumber = rand();
 		RandNum->array[i] = RandomNumber;
 	}
-	RandNum->array[BN_ARRAY_SIZE - 1] |= 0x10000000;
+	// mask
+	RandNum->array[BN_ARRAY_SIZE - 1] |= 0x80000000;
 }
 
 bool rabinmiller(bn_ptr n, int trails)
@@ -459,7 +483,14 @@ bool rabinmiller(bn_ptr n, int trails)
 	bn n_1; // n-1
 	bn_sub(&temp, n, &one);
 	bn_sub(&n_1, n, &one);
-
+	bn mod_small_3;
+	bn mod_small_5;
+	bn mod_small_7;
+	bn mod_small_11;
+	bn three(3);
+	bn five(5);
+	bn eleven(11);
+	
 	// let n-1 present in the way of (2^s)*t
 	int thisBit = temp.array[0] & 0x1;
 	int isZero = bn_is_zero(&temp);
@@ -516,13 +547,13 @@ void bn_nextprime(bn_ptr p, bn_ptr n)
 	}
 
 	// if n >= 2, set p as an odd larger or equal to n
-	bn_add(p, n, &one);
+	bn_add_ui(p, n, 1);
 	bn_setbit(p, 0);
 
 	// if p <= 7, i.e. p = 5 or 7, then p is a prime
 	if (bn_cmp(p, &seven) <= 0)
 		return;
-	
+
 	prime_limit = 166;
 
 	/* Compute residues modulo small odd primes */
@@ -532,8 +563,8 @@ void bn_nextprime(bn_ptr p, bn_ptr n)
 		// prime[1]
 		for (i = 0; i < prime_limit; i++)
 		{
-			bn prime(primes[i+1]);
-			bn_mod(moduli+i, p, &prime);
+			bn prime(primes[i + 1]);
+			bn_mod(moduli + i, p, &prime);
 		}
 
 #define INCR_LIMIT 0x10000 /* deep science */
@@ -542,31 +573,36 @@ void bn_nextprime(bn_ptr p, bn_ptr n)
 		{
 			for (i = 0; i < prime_limit; i++)
 			{
-				bn prime(primes[i+1]);
+				bn prime(primes[i + 1]);
 				bn r;
 				bn inc(incr);
 				bn sum;
-				bn_add(&sum, moduli+i, &inc);
+				bn_add(&sum, moduli + i, &inc);
 				bn_mod(&r, &sum, &prime);
 
 				// r == 0 means that (moduli + inc) is a composite number
 				// i.e. (p + inc) is a composite number
 				if (bn_is_zero(&r))
-					bn_add(&inc, &inc, &two);
+					goto next;
 			}
-			bn tmp(difference);
-			bn_assign(&diff, &tmp);
-			bn_add(p, p, &diff);
-			difference = 0;
 
-			/* Miller-Rabin test */
-			// if test passed, then p is probable a prime
-			if (rabinmiller(p, 25))
-				return;
+			{
+				bn tmp(difference);
+				bn_assign(&diff, &tmp);
+				bn_add(p, p, &diff);
+				difference = 0;
+
+				/* Miller-Rabin test */
+				// if test passed, then p is probable a prime
+				if (rabinmiller(p, 25))
+					goto done;
+			}
+		next:;
 			incr += 2;
 		}
 		bn_add(p, p, &diff);
 		bn_print(p);
 		difference = 0;
 	}
+	done:;
 }

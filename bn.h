@@ -39,7 +39,7 @@ There may well be room for performance-optimizations and improvements.
 
 
 #define BN_ARRAY_SIZE ((BITS / WORD_SIZE / 8))
-
+#define TMP_ARRAY_SIZE_FOR_MUL (BN_ARRAY_SIZE * 2)
 
 /* Here comes the compile-time specialization for how large the underlying array size should be. */
 /* The choices are 1, 2 and 4 bytes in size with uint32, uint64 for WORD_SIZE==4, as temporary. */
@@ -107,6 +107,8 @@ void bn_assign(bignum *op1, DTYPE_TMP n);
 /* Basic arithmetic operations: */
 /* res = op1 + op2 */
 void bn_add(bignum* res, bignum* op1, bignum* op2); 
+
+void bn_add_ui(bn_ptr res, bn_ptr op1, uint32_t op2);
 /* res = op1 - op2 */
 void bn_sub(bignum* res, bignum* op1, bignum* op2); 
 /* res = op1 * op2 */
