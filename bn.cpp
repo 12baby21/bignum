@@ -469,13 +469,7 @@ bool rabinmiller(bn_ptr n, int trails)
 	bn n_1; // n-1
 	bn_sub(&temp, n, &one);
 	bn_sub(&n_1, n, &one);
-	bn mod_small_3;
-	bn mod_small_5;
-	bn mod_small_7;
-	bn mod_small_11;
-	bn three(3);
-	bn five(5);
-	bn eleven(11);
+
 	
 	// let n-1 present in the way of (2^s)*t
 	int thisBit = temp.array[0] & 0x1;
