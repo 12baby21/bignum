@@ -95,41 +95,22 @@ void bn_add(bignum *res, bignum *op1, bignum *op2)
 	}	
 }
 
-void bn_add_ui(bn_ptr res, bn_ptr op1, uint32_t op2)
-{
-	DTYPE_TMP tmp;
-	int carry = 0;
-	for(int i = 0; i < BN_ARRAY_SIZE; ++i)
-	{
-		tmp = (DTYPE_TMP)op1->array[i] + op2 + carry;
-		carry = (tmp > MAX_VAL);
-		res->array[i] = (tmp & MAX_VAL);
-		// if carry is 0, there is no need to calculate the higher position
-		if(carry ==  0)
-		{
-			for(int j = i+1; j <BN_ARRAY_SIZE; ++j)
-			{
-				res->array[j] = op1->array[j];
-			}
-			break;
-		}
-	}
-}
-
 void bn_sub(bignum *res, bignum *op1, bignum *op2)
 {
 	DTYPE_TMP tmp1;
 	DTYPE_TMP tmp2;
 	DTYPE_TMP inter_res;
+	bn tmp_res;
 	int borrow = 0;
 	for (int i = 0; i < BN_ARRAY_SIZE; i++)
 	{
 		tmp1 = (DTYPE_TMP)op1->array[i] + (MAX_VAL + 1);
 		tmp2 = (DTYPE_TMP)op2->array[i] + borrow;
 		inter_res = (tmp1 - tmp2);
-		res->array[i] = (DTYPE)(inter_res & MAX_VAL);
+		tmp_res.array[i] = (DTYPE)(inter_res & MAX_VAL);
 		borrow = (inter_res <= MAX_VAL);
 	}
+	bn_assign(res, &tmp_res);
 }
 
 void bn_mul(bignum *res, bignum *op1, bignum *op2)
@@ -138,7 +119,7 @@ void bn_mul(bignum *res, bignum *op1, bignum *op2)
 
 	DTYPE lowbits = 0;
 	DTYPE highbits = 0; // carry
-	bignum tmp_res;		// avoid if op1|op2 = res
+	bignum tmp_res;
 	for (i = 0; i < BN_ARRAY_SIZE; ++i)
 	{
 		bignum row;
@@ -547,7 +528,7 @@ void bn_nextprime(bn_ptr p, bn_ptr n)
 	}
 
 	// if n >= 2, set p as an odd larger or equal to n
-	bn_add_ui(p, n, 1);
+	bn_add(p, n, &one);
 	bn_setbit(p, 0);
 
 	// if p <= 7, i.e. p = 5 or 7, then p is a prime

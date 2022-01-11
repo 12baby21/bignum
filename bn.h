@@ -107,8 +107,6 @@ void bn_assign(bignum *op1, DTYPE_TMP n);
 /* Basic arithmetic operations: */
 /* res = op1 + op2 */
 void bn_add(bignum* res, bignum* op1, bignum* op2); 
-
-void bn_add_ui(bn_ptr res, bn_ptr op1, uint32_t op2);
 /* res = op1 - op2 */
 void bn_sub(bignum* res, bignum* op1, bignum* op2); 
 /* res = op1 * op2 */
