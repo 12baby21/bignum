@@ -93,7 +93,7 @@ public:
 
 typedef bignum* bn_ptr;
 typedef bignum bn;
-
+typedef long long LL;
 
 /* Tokens returned by bignum_cmp() for value comparison */
 enum { SMALLER = -1, EQUAL = 0, LARGER = 1 };
@@ -157,7 +157,7 @@ void bn_setbit(const bn_ptr a, int n);
 /* return the bits number of bn */
 int bn_numbits(bignum *bn);               
 /* print the bignum in hex type */
-void bn_print(bignum* num);               
+void bn_print(bn_ptr num);               
 
 
 /* functions for big primes */

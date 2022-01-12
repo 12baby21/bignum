@@ -1,11 +1,10 @@
-/
 #include <iostream>
 #include "bn.h"
 #include "time.h"
 #include "common.h"
 #include <limits.h>
 
-using namespace std;
+    using namespace std;
 
 extern int P;
 
@@ -86,7 +85,7 @@ int main()
     ntt(&op1, len, 1);
     ntt(&op2, len, 1);
     bn ans;
-    for(int i = 0; i < len; i++)
+    for (int i = 0; i < len; i++)
     {
         ans.array[i] = op1.array[i] * op2.array[i] % P;
     }
@@ -101,7 +100,7 @@ int main()
             ans.array[i] %= 10;
         }
     }
-    
+
     int pos = 0;
     for (int i = len - 1; i >= 0; i--)
     {
@@ -113,8 +112,8 @@ int main()
     }
     **/
 
-   ntt(&ans, 32, true);
-   bn_print(&ans);
+    ntt(&ans, 32, true);
+    bn_print(&ans);
 
     return 0;
 }
