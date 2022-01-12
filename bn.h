@@ -119,6 +119,13 @@ void bn_pow(bignum* res, bignum* base, bignum* power);
 void bn_mod(bignum* res, bignum* a, bignum* b);
 /* res = a^b mod c O(logN) but hasn't theoretical acceleration */
 void bn_qmod(bignum* res, bignum* a, bignum* b, bignum* c);
+/* res = base ^ power */
+void bn_qpow(bn_ptr res, bn_ptr base, bn_ptr power);
+/* res = x ^ n, this function is for cpu-calculable operands */
+LL quick(LL x, LL n);
+
+/* optimize operator */
+void ntt(bn_ptr x, int len = 32, bool inv = false);
 
 
 /* Bitwise operations: */
@@ -138,6 +145,8 @@ void bn_inc(bignum* n);
 void bn_dec(bignum* n); 
 /* invert */
 void bn_invert(bn_ptr lambdainvert, bn_ptr lambda, bn_ptr n);
+/* 计算i的二进制逆序对应的整数 */
+int helper(int i, int power);
 
 
 /* Utility Functions */
@@ -161,6 +170,13 @@ void ProduceRandom(bn_ptr RandNum);
 bool rabinmiller(bn_ptr n, int trails);
 /* set p as the next prime of n */
 void bn_nextprime(bn_ptr p, bn_ptr n);
+
+
+
+
+
+
+
 
 #endif /* #ifndef __BIGNUM_H__ */
 

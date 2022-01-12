@@ -1,11 +1,15 @@
-/**
+/
 #include <iostream>
 #include "bn.h"
 #include "time.h"
 #include "common.h"
+#include <limits.h>
+
 using namespace std;
 
+extern int P;
 
+/**
  * invert module
 int main()
 {
@@ -68,62 +72,49 @@ int main()
     return 0;
 }
 **/
-#include<iostream>
-#include<cstdio>
-#include<cstring>
-#include<algorithm>
-#include<cmath>
-using namespace std;
-#define ll long long
-const ll P=998244353,g=3,G=332748118;
-const int N=5e6+5;
-ll a[N],b[N];
-int order[N];
-int p=1,L;
-ll qpow(ll a,ll b)
-{
-    ll ans=1;
-    while (b>0)
-    {
-        if (b&1) ans=ans*a%P;
-        b>>=1;
-        a=a*a%P;
-    }
-    return ans;
-}
-void NTT(ll *a,int inv)
-{
-	for (int i=0;i<p;i++) 
-		if (i<order[i]) swap(a[i],a[order[i]]);
-	for (int l=1;l<p;l<<=1)
-	{
-		ll Wn=qpow(inv==1?g:G,(P-1)/(l<<1));
-		for (int R=l<<1,j=0;j<p;j+=R)
-		{
-			ll w=1;
-			for (int k=0;k<l;k++,w=w*Wn%P)
-			{
-				ll x=a[j+k],y=w*a[j+l+k]%P;
-				a[j+k]=(x+y)%P;
-				a[j+l+k]=(x-y+P)%P;
-			}
-		}
-	}	
-} 
+
 int main()
 {
-	int n,m;
-	scanf("%d%d",&n,&m);
-	for (int i=0;i<=n;i++) scanf("%lld",&a[i]),a[i]=(a[i]+P)%P;
-	for (int i=0;i<=m;i++) scanf("%lld",&b[i]),b[i]=(b[i]+P)%P;
-	while (p<=n+m) p<<=1,L++;
-	for (int i=0;i<p;i++)
-		order[i]=(order[i>>1]>>1)|((i&1)<<(L-1));
-	NTT(a,1),NTT(b,1);
-	for (int i=0;i<=p;i++) a[i]=a[i]*b[i]%P;
-	NTT(a,-1);
-    ll inv=qpow(p,P-2);
-	for (int i=0;i<=n+m;i++)
-		printf("%d ",a[i]*inv%P);
-	return 0;
+    bn op1(11);
+    bn op2(31);
+    int len1 = 32;
+    int len2 = 32;
+
+    int len = 1;
+    while (len < len1 * 2 || len < len2 * 2)
+        len <<= 1;
+    ntt(&op1, len, 1);
+    ntt(&op2, len, 1);
+    bn ans;
+    for(int i = 0; i < len; i++)
+    {
+        ans.array[i] = op1.array[i] * op2.array[i] % P;
+    }
+    /**
+    这里需要考虑溢出的问题
+    for (int i = 0; i < len; i++)
+    {
+        ans.array[i] += op1.array[i];
+        if (ans.array[i] > INT_MAX)
+        {
+            ans.array[i + 1] += ans.array[i] / (INT_MAX+1);
+            ans.array[i] %= 10;
+        }
+    }
+    
+    int pos = 0;
+    for (int i = len - 1; i >= 0; i--)
+    {
+        if (ans[i])
+        {
+            pos = i;
+            break;
+        }
+    }
+    **/
+
+   ntt(&ans, 32, true);
+   bn_print(&ans);
+
+    return 0;
 }
