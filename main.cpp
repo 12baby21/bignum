@@ -7,7 +7,7 @@
 #include <algorithm>
 
 using namespace std;
-
+/**
 #define LL long long
 
 const int mod = 2013265921, g = 31;
@@ -16,21 +16,6 @@ struct NTT
 {
     void change(int y[], int len) // len必须是2的幂次
     {
-      
-        int l = 1;
-        while ((1 << l) < len)
-            ++l;
-        int rev[1024];
-        cout << "l = "<<l<<endl;
-        for (int i = 0; i < len; i++)
-        {
-            rev[i] = (rev[i >> 1] >> 1) | ((i & 1) << (l - 1));
-            cout<<i<<"<-->"<<rev[i]<<endl;
-            if(i < rev[i])
-                swap(y[i], y[rev[i]]);
-        }
-     
-        /**
         int i, j, k;
         for (i = 1, j = len >> 1; i < len - 1; i++)
         {
@@ -45,8 +30,6 @@ struct NTT
             if (j < k)
                 j += k;
         }
-        **/
-       
     }
 
     void dft(int y[], int len, int on) // len必须是2的幂次
@@ -115,10 +98,10 @@ struct NTT
 const int maxx = (1 << 21) + 5;
 int x1[64], x2[64];
 int res[maxx];
-
+**/
 int main()
 {
-    int n1 = 32;
+    /**int n1 = 32;
     int n2 = 32;
     int n;
     x1[0] = 32767;
@@ -126,12 +109,22 @@ int main()
     x1[1] = 2;
     x2[1] = 2;
 
-
     NTT.mul(x1, n1, x2, n2, res, n);
     for (int i = n - 1; i >= 0; i--)
         printf("%d ", res[i]);
     if (n <= 0)
-        cout << 0;
+        cout << 0;**/
+    bn op1(50);
+    bn op2(50);
+    bn res;
+    int n;
+
+    bn_ntt_mul(&res, n, &op1, 16, &op2, 16);
+    for(int i = n-1; i >= 0; --i)
+            cout<<res.array[i]<< " ";
+
+
+
     return 0;
 }
 

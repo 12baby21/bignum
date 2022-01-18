@@ -1,3 +1,4 @@
+/**
 #include <iostream>
 #include "bn.h"
 #include "time.h"
@@ -98,7 +99,7 @@ struct NTT
 const int maxx = (1 << 21) + 5;
 int x1[64], x2[64];
 int res[maxx];
-/**
+
 int main()
 {
     int n1 = 32;

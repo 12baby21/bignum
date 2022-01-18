@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <algorithm>
 #include <cmath>
+#include <algorithm>
 #include "bn.h"
 #include "common.h"
 #include "primes.h"
@@ -66,12 +67,19 @@ int bignum::getSize()
 	return 0;
 }
 
+/* often used bignum */
 bn one(1);
 bn zero(0);
 bn two(2);
 bn three(3);
 bn five(5);
 bn seven(7);
+
+/* ntt used Primitive root */
+const int M = 2013265921;
+const int g = 31;
+LL mul_x1, mul_x2, mul_res;
+const int UnitMax = 32768;
 
 void bn_assign(bignum *op1, bignum *op2)
 {
@@ -315,15 +323,61 @@ void bn_dec(bignum *n)
 	bn_sub(n, n, &one);
 }
 
-
-void change(bn_ptr x, int len)
+/* optimized operator */
+static void ButterflyOperation(bn_ptr x, int len)
 {
-	int l =1;
+	int i, j, k;
+	for (i = 1, j = len >> 1; i < len - 1; i++)
+	{
+		if (i < j)
+			swap(x->array[i], x->array[j]);
+		k = len >> 1;
+		while (j >= k)
+		{
+			j -= k;
+			k /= 2;
+		}
+		if (j < k)
+			j += k;
+	}
 }
 
-void NTT(bn_ptr op1, int len, bool isINTT)
+static void NTT(bn_ptr x, int len, bool isINTT = false)
 {
+	ButterflyOperation(x, len);
+	for (int h = 2; h <= len; h <<= 1)
+	{
+		//
+		int gn = qmod(g, (M - 1) / h, M);
+		if (isINTT)
+		{
+			gn = qmod(gn, M - 2, M);
+		}
+		for (int j = 0; j < len; j += h)
+		{
+			int g0 = 1;
+			// 这是一个计算域
+			for (int k = j; k < j + h / 2; k++)
+			{
+				LL u = x->array[k];
+				LL t = (LL)g0 * x->array[k + h / 2] % M;
+				x->array[k] = (u + t) % M;
+				x->array[k + h / 2] = (u - t + M) % M;
+				g0 = (LL)g0 * gn % M;
+			}
+		}
+	}
+	if (isINTT == true)
+	{
+		int inv = qmod(len, M - 2, M);
 
+		for (int i = 0; i < len; i++)
+		{
+			LL tmp = x->array[i];
+			tmp = tmp * inv % M;
+			x->array[i] = tmp;
+		}
+	}
 }
 
 void bn_ntt_mul(bn_ptr res, int &n, bn_ptr op1, int n1, bn_ptr op2, int n2)
@@ -333,8 +387,31 @@ void bn_ntt_mul(bn_ptr res, int &n, bn_ptr op1, int n1, bn_ptr op2, int n2)
 	// fill "len" to 2^l
 	while (n < _n)
 		n <<= 1;
-	NTT(op1, n, 1);
-	NTT(op2, n, 1);
+	// coefficient -> point value
+	NTT(op1, n, false);
+	NTT(op2, n, false);
+	// dot multiplication
+	for (int i = 0; i < n; ++i)
+	{
+		mul_x1 = op1->array[i];
+		mul_x2 = op2->array[i];
+		mul_res = mul_x1 * mul_x2 % M;
+		res->array[i] = mul_res;
+	}
+	// point value -> coefficient
+	NTT(res, n, true);
+
+	// 解决乘法溢出
+	for (int i = 0; i < n; i++)
+	{
+		res->array[i + 1] += res->array[i] / UnitMax;
+		res->array[i] = res->array[i] % UnitMax;
+	}
+	while (res->array[n - 1] == 0)
+	{
+		n--;
+	}
+	res->actual_array_size = n;
 }
 
 /* Basic arithmetic operations for basic types: */

@@ -130,7 +130,7 @@ LL quick(LL x, LL n);
 int qmod(int a, int b, int M);
 
 /* optimized operator */
-void ntt(bn_ptr x, int len = 32, bool inv = false);
+void bn_ntt_mul(bn_ptr res, int &n, bn_ptr op1, int n1, bn_ptr op2, int n2);
 
 /* Bitwise operations: */
 /* res = op1 | op2 */
