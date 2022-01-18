@@ -55,6 +55,17 @@ bignum::bignum(uint64_t num)
 #endif
 }
 
+int bignum::getSize()
+{
+	int size = BN_ARRAY_SIZE;
+	for (int i = BN_ARRAY_SIZE - 1; i >= 0; --i)
+	{
+		if (this->array[i] != 0)
+			return size;
+	}
+	return 0;
+}
+
 bn one(1);
 bn zero(0);
 bn two(2);
@@ -302,6 +313,28 @@ void bn_inc(bignum *n)
 void bn_dec(bignum *n)
 {
 	bn_sub(n, n, &one);
+}
+
+
+void change(bn_ptr x, int len)
+{
+	int l =1;
+}
+
+void NTT(bn_ptr op1, int len, bool isINTT)
+{
+
+}
+
+void bn_ntt_mul(bn_ptr res, int &n, bn_ptr op1, int n1, bn_ptr op2, int n2)
+{
+	n = 1;
+	int _n = n1 + n2 - 1;
+	// fill "len" to 2^l
+	while (n < _n)
+		n <<= 1;
+	NTT(op1, n, 1);
+	NTT(op2, n, 1);
 }
 
 /* Basic arithmetic operations for basic types: */

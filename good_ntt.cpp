@@ -16,21 +16,6 @@ struct NTT
 {
     void change(int y[], int len) // len必须是2的幂次
     {
-      
-        int l = 1;
-        while ((1 << l) < len)
-            ++l;
-        int rev[1024];
-        cout << "l = "<<l<<endl;
-        for (int i = 0; i < len; i++)
-        {
-            rev[i] = (rev[i >> 1] >> 1) | ((i & 1) << (l - 1));
-            cout<<i<<"<-->"<<rev[i]<<endl;
-            if(i < rev[i])
-                swap(y[i], y[rev[i]]);
-        }
-     
-        /**
         int i, j, k;
         for (i = 1, j = len >> 1; i < len - 1; i++)
         {
@@ -44,9 +29,7 @@ struct NTT
             }
             if (j < k)
                 j += k;
-        }
-        **/
-       
+        }       
     }
 
     void dft(int y[], int len, int on) // len必须是2的幂次
@@ -115,7 +98,7 @@ struct NTT
 const int maxx = (1 << 21) + 5;
 int x1[64], x2[64];
 int res[maxx];
-
+/**
 int main()
 {
     int n1 = 32;
@@ -134,67 +117,5 @@ int main()
         cout << 0;
     return 0;
 }
-
-/**
- * invert module
-int main()
-{
-    bn m(1);
-    bn c;
-    bn res;
-
-    bn n, g, lambda, mu, n_2;
-    GenKey(1024, &n, &g, &lambda, &mu, &n_2);
-    cout<<"n:"<<endl;
-    bn_print(&n);
-    cout<<endl;
-    cout<<"g:"<<endl;
-    bn_print(&g);
-    cout<<endl;
-    cout<<"lambda:"<<endl;
-    bn_print(&lambda);
-    cout<<endl;
-    cout<<"mu:"<<endl;
-    bn_print(&mu);
-    cout<<endl;
-    cout<<"n^2:"<<endl;
-    bn_print(&n_2);
-    cout<<endl;
-
-
-
-    Encryption(&c, &m, &g, &n, &n_2);
-    Decryption(&res, &c, &lambda, &n, &n_2);
-
-    cout<<"m:"<<endl;
-    bn_print(&m);
-    cout<<endl;
-
-    cout<<"res:"<<endl;
-    bn_print(&res);
-
-    return 0;
-}
 **/
-/**
-int main()
-{
-    clock_t start = clock();
 
-    bn RandNum(551541242518964165);
-    //ProduceRandom(&RandNum);
-    RandNum.array[0] |= 1;
-
-    cout << "We have generated a random number:" << endl;
-    bn_print(&RandNum);
-
-    bn p;
-    bn_nextprime(&p, &RandNum);
-    cout << "The next prime of RandNum is: ";
-    bn_print(&p);
-
-    clock_t finish = clock();
-    cout << "Time elapsed:" << dec << 1.0 * (finish - start) / CLOCKS_PER_SEC << "s" << endl;
-    return 0;
-}
-**/
