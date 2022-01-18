@@ -617,7 +617,7 @@ void bn_nextprime(bn_ptr p, bn_ptr n)
 done:;
 }
 
-typedef long long LL;
+
 const int N = 1 << 18;
 const int G = 3, P = (479 << 21) + 1; // G为原根，P为大素数,可以处理2^21次范围
 
@@ -663,48 +663,3 @@ int helper(int i, int power)
 	}
 	return res;
 }
-
-void ntt(bn_ptr x, int len = 32, bool inv = false)
-{
-	int l = 0;
-	while ((l << 1) < len)
-		++l;
-
-	for (int r = 1; r <= l; ++r)
-	{
-		int mid = 1 << (l - r);
-		int t = quick(G, P - 1);
-		if (inv == true)
-		{
-			t = quick(t, P - 2);
-		}
-		int group_count = 1 << (r - 1);
-		for (int i = 0; i < group_count; ++i)
-		{
-			int power = helper(i, group_count >> 1);
-			int a_p = quick(t, power); // a^p
-			int base = i << (l - r + 1);
-			for (int j = 0; j < mid; ++j)
-			{
-				int u = x->array[base + j];
-				int v = x->array[base + j + mid] * a_p % P;
-				x->array[base + j] = (u + v) % P;
-				x->array[base + j + mid] = (u - v) % P;
-			}
-		}
-	}
-	int rev[32];
-	for (int i = 0; i < len; i++)
-	{
-		rev[i] = (rev[i >> 1] >> 1) | ((i & 1) << (l - 1));
-		if (i < rev[i])
-		{
-			int tmp = x->array[i];
-			x->array[i] = x->array[rev[i]];
-			x->array[rev[i]] = tmp;
-		}
-	}
-}
-
-char s1[100010], s2[100010];
-LL ans[N];
