@@ -89,7 +89,7 @@ void bn_assign(bignum *op1, DTYPE_TMP n)
 #endif
 }
 
-/* Basic arithmetic operations: */
+/* Basic arithmetic operations for bignum: */
 void bn_add(bignum *res, bignum *op1, bignum *op2)
 {
 	DTYPE_TMP tmp;
@@ -302,6 +302,20 @@ void bn_inc(bignum *n)
 void bn_dec(bignum *n)
 {
 	bn_sub(n, n, &one);
+}
+
+/* Basic arithmetic operations for basic types: */
+int qmod(int a, int b, int M)
+{
+	int ans = 1;
+	while (b)
+	{
+		if (b & 1)
+			ans = (LL)ans * a % M;
+		a = (LL)a * a % M;
+		b >>= 1;
+	}
+	return ans;
 }
 
 /* Bitwise operations: */
@@ -615,51 +629,4 @@ void bn_nextprime(bn_ptr p, bn_ptr n)
 		difference = 0;
 	}
 done:;
-}
-
-
-const int N = 1 << 18;
-const int G = 3, P = (479 << 21) + 1; // G为原根，P为大素数,可以处理2^21次范围
-
-LL quick(LL x, LL n)
-{
-	LL ret = 1;
-	for (; n; n >>= 1)
-	{
-		if (n & 1)
-			ret = ret * x % P;
-		x = x * x % P;
-	}
-	return ret;
-}
-
-void rader(LL *y, int len)
-{
-	for (int i = 1, j = len / 2; i < len - 1; i++)
-	{
-		if (i < j)
-			swap(y[i], y[j]);
-		int k = len / 2;
-		while (j >= k)
-		{
-			j -= k;
-			k /= 2;
-		}
-		if (j < k)
-			j += k;
-	}
-}
-int helper(int i, int power)
-{
-	int res = 0;
-	while (i != 0)
-	{
-		if (i & 1)
-		{
-			res += power;
-		}
-		i >>= 1;
-		power >>= 1;
-	}
-	return res;
 }

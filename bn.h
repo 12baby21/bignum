@@ -104,7 +104,7 @@ void bn_assign(bignum *op1, bignum *op2);
 /* op1 = n */
 void bn_assign(bignum *op1, DTYPE_TMP n);       
 
-/* Basic arithmetic operations: */
+/* Basic arithmetic operations for bignum: */
 /* res = op1 + op2 */
 void bn_add(bignum* res, bignum* op1, bignum* op2); 
 /* res = op1 - op2 */
@@ -124,7 +124,13 @@ void bn_qpow(bn_ptr res, bn_ptr base, bn_ptr power);
 /* res = x ^ n, this function is for cpu-calculable operands */
 LL quick(LL x, LL n);
 
-/* optimize operator */
+/* Basic arithmetic operations for basic types: */
+/* return: a^b mod M */
+int qmod(int a, int b, int M);
+
+
+
+/* optimized operator */
 void ntt(bn_ptr x, int len = 32, bool inv = false);
 
 
