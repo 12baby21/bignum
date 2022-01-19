@@ -81,6 +81,15 @@ const int g = 31;
 LL mul_x1, mul_x2, mul_res;
 const int UnitMax = 32768;
 
+/**	will be used if data struct is specified
+#if(WORD_SIZE == 1)
+#define UnitMax = 256
+#elif(WORD_SIZE == 2)
+#define UnitMax = 32768
+#elif(WORD_SIZE == 4)
+#define UnitMax = 65536
+#endif
+**/
 void bn_assign(bignum *op1, bignum *op2)
 {
 	for (int i = 0; i < BN_ARRAY_SIZE; i++)
@@ -344,6 +353,11 @@ static void ButterflyOperation(bn_ptr x, int len)
 
 static void NTT(bn_ptr x, int len, bool isINTT = false)
 {
+	/**
+	 * 涉及的运算
+	 * 模幂 -> qmod
+	 * 模乘 -> * %
+	 */
 	ButterflyOperation(x, len);
 	for (int h = 2; h <= len; h <<= 1)
 	{
@@ -401,9 +415,10 @@ void bn_ntt_mul(bn_ptr res, int &n, bn_ptr op1, int n1, bn_ptr op2, int n2)
 	// point value -> coefficient
 	NTT(res, n, true);
 
-	// 解决乘法溢出
+	// 解决乘法溢出	SSA
 	for (int i = 0; i < n; i++)
 	{
+		// 在硬件电路中直接取高位为进位，低位为保留位即可
 		res->array[i + 1] += res->array[i] / UnitMax;
 		res->array[i] = res->array[i] % UnitMax;
 	}

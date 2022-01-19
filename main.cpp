@@ -114,15 +114,16 @@ int main()
         printf("%d ", res[i]);
     if (n <= 0)
         cout << 0;**/
-    bn op1(50);
-    bn op2(50);
+    bn op1;
+    bn op2;
+    
     bn res;
     int n;
 
     bn_ntt_mul(&res, n, &op1, 16, &op2, 16);
     for(int i = n-1; i >= 0; --i)
             cout<<res.array[i]<< " ";
-
+    cout << endl;
 
 
     return 0;
