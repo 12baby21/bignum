@@ -34,13 +34,15 @@ There may well be room for performance-optimizations and improvements.
 #define BITS 1024
 #endif
 
-#define BN_ARRAY_SIZE ((BITS / WORD_SIZE / 8))
-#define TMP_ARRAY_SIZE_FOR_MUL (BN_ARRAY_SIZE * 2)
+// 数组的每个单元存储WORD_SIZE位数据
+// 2倍的存储空间为乘法服务
+#define BN_ARRAY_SIZE ((BITS / WORD_SIZE / 8) * 2)
 
 /* Here comes the compile-time specialization for how large the underlying array size should be. */
 /* The choices are 1, 2 and 4 bytes in size with uint32, uint64 for WORD_SIZE==4, as temporary. */
 #ifndef WORD_SIZE
 #error Must define WORD_SIZE to be 1, 2, 4
+// 1 byte
 #elif (WORD_SIZE == 1)
 /* Data type of array in structure */
 #define DTYPE uint8_t
@@ -53,6 +55,7 @@ There may well be room for performance-optimizations and improvements.
 #define SSCANF_FORMAT_STR "%2hhx"
 /* Max value of integer type */
 #define MAX_VAL ((DTYPE_TMP)0xFF)
+// 2 bytes
 #elif (WORD_SIZE == 2)
 #define DTYPE uint16_t
 #define DTYPE_TMP uint32_t
@@ -60,6 +63,7 @@ There may well be room for performance-optimizations and improvements.
 #define SPRINTF_FORMAT_STR "%.04x"
 #define SSCANF_FORMAT_STR "%4hx"
 #define MAX_VAL ((DTYPE_TMP)0xFFFF)
+// int
 #elif (WORD_SIZE == 4)
 #define DTYPE uint32_t
 #define DTYPE_TMP uint64_t
@@ -137,6 +141,8 @@ void bn_ntt_mul(bn_ptr res, int &n, bn_ptr op1, int n1, bn_ptr op2, int n2);
 void bn_or(bignum *res, bignum *op1, bignum *op2);
 /* res = op1 & op2 */
 void bn_and(bignum *res, bignum *op1, bignum *op2);
+/* a = a << n, inplace */
+void _bn_rshift(bn_ptr a, bn_ptr b, int nbits);
 
 /* Special operators and comparison */
 /* Compare: returns LARGER=1, EQUAL=0 or SMALLER=-1 */

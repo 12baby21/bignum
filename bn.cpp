@@ -332,14 +332,27 @@ void bn_dec(bignum *n)
 	bn_sub(n, n, &one);
 }
 
+
+// 费马小定理求逆元
+// inverse = a ^ {p-2}
+void bn_Fermat_inverse(bn_ptr inverse, bn_ptr a, bn_ptr p)
+{
+	// p-2
+	bn p_2;
+	bn_sub(&p_2, p, &two);
+
+	bn_qpow(inverse, a, &p_2);
+}
+
+
 /* optimized operator */
-static void ButterflyOperation(bn_ptr x, int len)
+static void ButterflyOperation(int* x, int len)
 {
 	int i, j, k;
 	for (i = 1, j = len >> 1; i < len - 1; i++)
 	{
 		if (i < j)
-			swap(x->array[i], x->array[j]);
+			swap(x[i], x[j]);
 		k = len >> 1;
 		while (j >= k)
 		{
@@ -351,7 +364,7 @@ static void ButterflyOperation(bn_ptr x, int len)
 	}
 }
 
-static void NTT(bn_ptr x, int len, bool isINTT = false)
+static void NTT(int* x, int len, bool isINTT = false)
 {
 	/**
 	 * 涉及的运算
@@ -373,10 +386,10 @@ static void NTT(bn_ptr x, int len, bool isINTT = false)
 			// 这是一个计算域
 			for (int k = j; k < j + h / 2; k++)
 			{
-				LL u = x->array[k];
-				LL t = (LL)g0 * x->array[k + h / 2] % M;
-				x->array[k] = (u + t) % M;
-				x->array[k + h / 2] = (u - t + M) % M;
+				LL u = x[k];
+				LL t = (LL)g0 * x[k + h / 2] % M;
+				x[k] = (u + t) % M;
+				x[k + h / 2] = (u - t + M) % M;
 				g0 = (LL)g0 * gn % M;
 			}
 		}
@@ -387,40 +400,66 @@ static void NTT(bn_ptr x, int len, bool isINTT = false)
 
 		for (int i = 0; i < len; i++)
 		{
-			LL tmp = x->array[i];
+			LL tmp = x[i];
 			tmp = tmp * inv % M;
-			x->array[i] = tmp;
+			x[i] = tmp;
 		}
 	}
 }
 
+static void preProcessOperand(bn_ptr op, int* buffer)
+{
+	for(int i = 0; i < op->actual_array_size; ++i)
+	{
+		*(buffer + i) = op->array[i];
+	}
+}
+
+// 乘法域
+// 对于输入的乘数，需要预先读取操作数至更大的有限域中
 void bn_ntt_mul(bn_ptr res, int &n, bn_ptr op1, int n1, bn_ptr op2, int n2)
 {
+	
 	n = 1;
 	int _n = n1 + n2 - 1;
 	// fill "len" to 2^l
 	while (n < _n)
 		n <<= 1;
 	// coefficient -> point value
-	NTT(op1, n, false);
-	NTT(op2, n, false);
+
+	// 把操作数存在int型有限域中
+	// 也许可以当作队列
+	int buffer1[BN_ARRAY_SIZE];
+	int buffer2[BN_ARRAY_SIZE];
+	int res_buffer[BN_ARRAY_SIZE];
+
+	// 可以并行处理
+	// 把操作数预先读入乘法域中的buffer
+	preProcessOperand(op1, buffer1);
+	preProcessOperand(op2, buffer2);
+	
+	// 系数表达式 -> 点值表达式
+	NTT(buffer1, n, false);
+	NTT(buffer2, n, false);
+
+
 	// dot multiplication
 	for (int i = 0; i < n; ++i)
 	{
-		mul_x1 = op1->array[i];
-		mul_x2 = op2->array[i];
+		mul_x1 = buffer1[i];
+		mul_x2 = buffer2[i];
 		mul_res = mul_x1 * mul_x2 % M;
-		res->array[i] = mul_res;
+		res_buffer[i] = mul_res;
 	}
-	// point value -> coefficient
-	NTT(res, n, true);
+	// 系数表达式 -> 点值表达式
+	NTT(res_buffer, n, true);
 
 	// 解决乘法溢出	SSA
 	for (int i = 0; i < n; i++)
 	{
 		// 在硬件电路中直接取高位为进位，低位为保留位即可
-		res->array[i + 1] += res->array[i] / UnitMax;
-		res->array[i] = res->array[i] % UnitMax;
+		res->array[i + 1] +=res_buffer[i] / UnitMax;
+		res->array[i] = res_buffer[i] % UnitMax;
 	}
 	while (res->array[n - 1] == 0)
 	{
@@ -504,6 +543,33 @@ void bn_setbit(const bn_ptr a, int n)
 		i = i << 1;
 	a->array[array_index] |= i;
 }
+
+void _bn_rshift(bn_ptr a, bn_ptr b, int nbits)
+{
+	/* Handle shift in multiples of word-size */
+	int nwords = nbits >> 5;
+	if (nwords != 0)
+	{
+		int z = nwords << 5;
+		_rshift_word(a, nwords);
+		nbits -= (z);
+	}
+
+	if (nbits != 0)
+	{
+		int z = 32 - nbits;
+		int i;
+		for (i = 0; i < (BN_ARRAY_SIZE - 1); i++)
+		{
+			// a->array[i + 1] << (z) 即取高位的低32-nbits位
+			DTYPE higher = a->array[i+1] << z;
+			DTYPE lower = a->array[i] >> nbits;
+			a->array[i] = higher | lower;
+		}
+		a->array[i] >>= nbits;
+	}
+}
+
 
 int bn_numbits(bignum *bn)
 {
