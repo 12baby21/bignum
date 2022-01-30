@@ -26,6 +26,7 @@ bignum::bignum()
 	{
 		array[i] = 0;
 	}
+	size = 0;
 }
 
 bignum::bignum(uint64_t num)
@@ -54,22 +55,32 @@ bignum::bignum(uint64_t num)
 	array[1] = tmp;
 #endif
 #endif
+	size = 4;
+	for (int i = 3; i >= 0; --i)
+	{
+		if (array[i] == 0)
+			size--;
+	}
+}
+
+bignum::bignum(bignum* num)
+{
+	bn_assign(this, num);
 }
 
 int bignum::getSize()
 {
-	int size = BN_ARRAY_SIZE;
 	for (int i = BN_ARRAY_SIZE - 1; i >= 0; --i)
 	{
-		if (this->array[i] != 0)
-			return size;
+		if (array[i] != 0)
+			return i + 1;
 	}
 	return 0;
 }
 
 /* often used bignum */
 bn one(1);
-bn zero(0);
+bn zero;
 bn two(2);
 bn three(3);
 bn five(5);
@@ -263,6 +274,31 @@ void bn_mod(bignum *res, bignum *a, bignum *b)
 
 void bn_qmod(bignum *res, bignum *a, bignum *b, bignum *c)
 {
+	if (bn_cmp(a, &zero) == EQUAL)
+	{
+		// 0 ^ b mod c = 0
+		bn_assign(res, &zero);
+	}
+
+	/**
+	 * if c == 1:
+	 * a ^ 0 mod c = 0
+	 * else
+	 * a ^ 0 mod c = 1
+	 */
+	if (bn_cmp(b, &zero) == EQUAL)
+	{
+		if (bn_cmp(c, &one) == EQUAL)
+		{
+			bn_assign(res, &zero);
+		}
+		else
+		{
+			bn_assign(res, &one);
+		}
+		return;
+	}
+
 	bn tmp_res(1);
 	for (int i = 0; i < BN_ARRAY_SIZE; i++)
 	{
@@ -332,7 +368,6 @@ void bn_dec(bignum *n)
 	bn_sub(n, n, &one);
 }
 
-
 // 费马小定理求逆元
 // inverse = a ^ {p-2}
 void bn_Fermat_inverse(bn_ptr inverse, bn_ptr a, bn_ptr p)
@@ -341,12 +376,11 @@ void bn_Fermat_inverse(bn_ptr inverse, bn_ptr a, bn_ptr p)
 	bn p_2;
 	bn_sub(&p_2, p, &two);
 
-	bn_qpow(inverse, a, &p_2);
+	bn_qmod(inverse, a, &p_2, p);
 }
 
-
 /* optimized operator */
-static void ButterflyOperation(int* x, int len)
+static void ButterflyOperation(int *x, int len)
 {
 	int i, j, k;
 	for (i = 1, j = len >> 1; i < len - 1; i++)
@@ -364,7 +398,7 @@ static void ButterflyOperation(int* x, int len)
 	}
 }
 
-static void NTT(int* x, int len, bool isINTT = false)
+static void NTT(int *x, int len, bool isINTT = false)
 {
 	/**
 	 * 涉及的运算
@@ -407,9 +441,9 @@ static void NTT(int* x, int len, bool isINTT = false)
 	}
 }
 
-static void preProcessOperand(bn_ptr op, int* buffer)
+static void preProcessOperand(bn_ptr op, int *buffer)
 {
-	for(int i = 0; i < op->actual_array_size; ++i)
+	for (int i = 0; i < op->size; ++i)
 	{
 		*(buffer + i) = op->array[i];
 	}
@@ -419,7 +453,7 @@ static void preProcessOperand(bn_ptr op, int* buffer)
 // 对于输入的乘数，需要预先读取操作数至更大的有限域中
 void bn_ntt_mul(bn_ptr res, int &n, bn_ptr op1, int n1, bn_ptr op2, int n2)
 {
-	
+
 	n = 1;
 	int _n = n1 + n2 - 1;
 	// fill "len" to 2^l
@@ -437,11 +471,10 @@ void bn_ntt_mul(bn_ptr res, int &n, bn_ptr op1, int n1, bn_ptr op2, int n2)
 	// 把操作数预先读入乘法域中的buffer
 	preProcessOperand(op1, buffer1);
 	preProcessOperand(op2, buffer2);
-	
+
 	// 系数表达式 -> 点值表达式
 	NTT(buffer1, n, false);
 	NTT(buffer2, n, false);
-
 
 	// dot multiplication
 	for (int i = 0; i < n; ++i)
@@ -458,14 +491,14 @@ void bn_ntt_mul(bn_ptr res, int &n, bn_ptr op1, int n1, bn_ptr op2, int n2)
 	for (int i = 0; i < n; i++)
 	{
 		// 在硬件电路中直接取高位为进位，低位为保留位即可
-		res->array[i + 1] +=res_buffer[i] / UnitMax;
+		res->array[i + 1] += res_buffer[i] / UnitMax;
 		res->array[i] = res_buffer[i] % UnitMax;
 	}
 	while (res->array[n - 1] == 0)
 	{
 		n--;
 	}
-	res->actual_array_size = n;
+	res->size = n;
 }
 
 /* Basic arithmetic operations for basic types: */
@@ -521,16 +554,10 @@ int bn_cmp(bignum *op1, bignum *op2)
 	return 0;
 }
 
-void bn_invert(bn_ptr lambdainvert, bn_ptr lambda, bn_ptr n)
-{
-	bn gcds, gcdt, gcdgcd;
-	extended_euclidean(lambdainvert, &gcdt, &gcdgcd, lambda, n);
-}
-
 int bn_getbit(const bn_ptr a, int n)
 {
 	int index = n / (WORD_SIZE * 8);
-	int dst = n - index * (WORD_SIZE * 8);
+	int dst = n % (WORD_SIZE * 8);
 	return (a->array[index] >> dst) & 1;
 }
 
@@ -562,14 +589,13 @@ void _bn_rshift(bn_ptr a, bn_ptr b, int nbits)
 		for (i = 0; i < (BN_ARRAY_SIZE - 1); i++)
 		{
 			// a->array[i + 1] << (z) 即取高位的低32-nbits位
-			DTYPE higher = a->array[i+1] << z;
+			DTYPE higher = a->array[i + 1] << z;
 			DTYPE lower = a->array[i] >> nbits;
 			a->array[i] = higher | lower;
 		}
 		a->array[i] >>= nbits;
 	}
 }
-
 
 int bn_numbits(bignum *bn)
 {
@@ -611,8 +637,6 @@ void bn_print(bignum *num)
 /* Functions for shifting number in-place. */
 static void _lshift_one_bit(bignum *a)
 {
-	require(a, "a is null");
-
 	int i;
 	for (i = (BN_ARRAY_SIZE - 1); i > 0; --i)
 	{
@@ -623,8 +647,6 @@ static void _lshift_one_bit(bignum *a)
 
 static void _rshift_one_bit(bignum *a)
 {
-	require(a, "a is null");
-
 	int i;
 	for (i = 0; i < (BN_ARRAY_SIZE - 1); ++i)
 	{

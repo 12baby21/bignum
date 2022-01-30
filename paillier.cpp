@@ -71,7 +71,7 @@ void Decryption(bn_ptr res, bn_ptr c, bn_ptr lambda, bn_ptr n, bn_ptr n_2)
     cout<<endl;
 
     bn lambdainvert;
-    bn_invert(&lambdainvert, lambda, n);
+    bn_Fermat_inverse(&lambdainvert, lambda, n);
     bn_mul(&l, &l, &lambdainvert);
     bn_mod(res, &l, n);
 

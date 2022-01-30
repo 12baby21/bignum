@@ -1,6 +1,7 @@
 #ifndef BN_H
 #define BN_H
 #include <stdio.h>
+
 /*
 
 Big number library - arithmetic on multiple-precision unsigned integers.
@@ -30,6 +31,7 @@ There may well be room for performance-optimizations and improvements.
 #define WORD_SIZE 4
 #endif
 
+// length of key
 #ifndef BITS
 #define BITS 1024
 #endif
@@ -46,38 +48,25 @@ There may well be room for performance-optimizations and improvements.
 #elif (WORD_SIZE == 1)
 /* Data type of array in structure */
 #define DTYPE uint8_t
-/* bitmask for getting MSB */
 #define DTYPE_MSB ((DTYPE_TMP)(0x80))
-/* Data-type larger than DTYPE, for holding intermediate results of calculations */
 #define DTYPE_TMP uint32_t
-/* sprintf format string */
-#define SPRINTF_FORMAT_STR "%.02x"
-#define SSCANF_FORMAT_STR "%2hhx"
-/* Max value of integer type */
 #define MAX_VAL ((DTYPE_TMP)0xFF)
 // 2 bytes
 #elif (WORD_SIZE == 2)
 #define DTYPE uint16_t
 #define DTYPE_TMP uint32_t
 #define DTYPE_MSB ((DTYPE_TMP)(0x8000))
-#define SPRINTF_FORMAT_STR "%.04x"
-#define SSCANF_FORMAT_STR "%4hx"
 #define MAX_VAL ((DTYPE_TMP)0xFFFF)
 // int
 #elif (WORD_SIZE == 4)
 #define DTYPE uint32_t
-#define DTYPE_TMP uint64_t
-#define DTYPE_MSB ((DTYPE_TMP)(0x80000000))
-#define SPRINTF_FORMAT_STR "%.08x"
-#define SSCANF_FORMAT_STR "%8x"
+#define DTYPE_TMP uint64_t  // used for multiplication
+#define DTYPE_MSB ((DTYPE_TMP)(0x80000000))   // used for fetch the maximum bit
 #define MAX_VAL ((DTYPE_TMP)0xFFFFFFFF)
 #endif
 #ifndef DTYPE
 #error DTYPE must be defined to uint8_t, uint16_t uint32_t or whatever
 #endif
-
-/* Custom assert macro - easy to disable */
-#define require(p, msg) assert(p &&#msg)
 
 class bignum
 {
@@ -85,7 +74,8 @@ public:
   DTYPE array[BN_ARRAY_SIZE];
   bignum();
   bignum(uint64_t num);
-  int actual_array_size;
+  bignum(bignum* num);
+  int32_t size;   // size < 0 represents negative, size > 0 represents positive
 
   // get the actual size of the bignum
   int getSize();
@@ -153,12 +143,12 @@ bool bn_is_zero(bignum *n);
 void bn_inc(bignum *n);
 /* Decrement: sub one from n */
 void bn_dec(bignum *n);
-/* invert */
-void bn_invert(bn_ptr lambdainvert, bn_ptr lambda, bn_ptr n);
+/* Fermat inverse */
+void bn_Fermat_inverse(bn_ptr inverse, bn_ptr a, bn_ptr p);
 
 /* Utility Functions */
 /* get the n-th bit of a */
-int bn_getbit(const bignum *a, int n);
+int bn_getbit(const bn_ptr a, int n);
 /* set the n-th bit to 1 */
 void bn_setbit(const bn_ptr a, int n);
 /* return the bits number of bn */
