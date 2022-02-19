@@ -76,9 +76,10 @@ public:
   bignum(uint64_t num);
   bignum(bignum* num);
   int32_t size;   // size < 0 represents negative, size > 0 represents positive
-
+  int32_t bitnum; // bit number of 
   // get the actual size of the bignum
   int getSize();
+  int getBitnum();
 };
 
 typedef bignum *bn_ptr;
@@ -125,14 +126,23 @@ int qmod(int a, int b, int M);
 
 /* optimized operator */
 void bn_ntt_mul(bn_ptr res, int &n, bn_ptr op1, int n1, bn_ptr op2, int n2);
+/* res = a mod b, note that bit number of a must less than 2 * bit number of b */
+void BarrettReduction(bn_ptr res, bn_ptr a, bn_ptr b);
+
 
 /* Bitwise operations: */
 /* res = op1 | op2 */
 void bn_or(bignum *res, bignum *op1, bignum *op2);
 /* res = op1 & op2 */
 void bn_and(bignum *res, bignum *op1, bignum *op2);
-/* a = a << n, inplace */
+/* a = a >> n, inplace */
 void _bn_rshift(bn_ptr a, bn_ptr b, int nbits);
+/* res = a >> nbits */
+void bn_rshift_bits(bn_ptr res, bn_ptr a, int nbits);
+/* res = a << nbits */
+void bn_lshift_bits(bn_ptr res, bn_ptr a, int nbits);
+/* res =  a[0, highbit)*/
+void bn_TakeLowBits(bn_ptr res, bn_ptr a, int highbit);
 
 /* Special operators and comparison */
 /* Compare: returns LARGER=1, EQUAL=0 or SMALLER=-1 */
@@ -155,6 +165,7 @@ void bn_setbit(const bn_ptr a, int n);
 int bn_numbits(bignum *bn);
 /* print the bignum in hex type */
 void bn_print(bn_ptr num);
+/* get a range of bits */
 
 /* functions for big primes */
 /* Calculate trail number */

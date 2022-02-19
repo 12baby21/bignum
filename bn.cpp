@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cmath>
 #include <algorithm>
+#include <assert.h>
 #include "bn.h"
 #include "common.h"
 #include "primes.h"
@@ -63,9 +64,11 @@ bignum::bignum(uint64_t num)
 	}
 }
 
-bignum::bignum(bignum* num)
+bignum::bignum(bignum *num)
 {
 	bn_assign(this, num);
+	this->size = this->getSize();
+	this->bitnum = this->getBitnum();
 }
 
 int bignum::getSize()
@@ -74,6 +77,21 @@ int bignum::getSize()
 	{
 		if (array[i] != 0)
 			return i + 1;
+	}
+	return 0;
+}
+
+int bignum::getBitnum()
+{
+	int n = BN_ARRAY_SIZE - 1;
+	int b;
+	for (; n >= 0; n--)
+	{
+		b = bn_getbit(this, n);
+		if (b == 1)
+		{
+			return n + 1;
+		}
 	}
 	return 0;
 }
@@ -107,6 +125,7 @@ void bn_assign(bignum *op1, bignum *op2)
 	{
 		op1->array[i] = op2->array[i];
 	}
+	op1->size = op2->size;
 }
 
 void bn_assign(bignum *op1, DTYPE_TMP n)
@@ -124,6 +143,13 @@ void bn_assign(bignum *op1, DTYPE_TMP n)
 #elif (WORD_SIZE == 4)
 	op1->array[0] = n & MAX_VAL;
 	op1->array[1] = n >> 32;
+	if (op1->array[1] != 0)
+		op1->size = 2;
+	else
+		op1->size = 1;
+
+		// if (isNegative)
+		//	op1->size = -op1->size;
 #endif
 #endif
 }
@@ -274,13 +300,33 @@ void bn_mod(bignum *res, bignum *a, bignum *b)
 
 void bn_qmod(bignum *res, bignum *a, bignum *b, bignum *c)
 {
-	if (bn_cmp(a, &zero) == EQUAL)
+	bignum newBase;
+
+	/**
+	 * if a == c:
+	 * a ^ b mod c = (a mod c) ^ b = 0
+	 * if a == 0:
+	 * 0 ^ b mod c = 0
+	 */
+	if (bn_cmp(a, c) == EQUAL || bn_cmp(a, &newBase) == EQUAL)
 	{
-		// 0 ^ b mod c = 0
-		bn_assign(res, &zero);
+		bn_assign(res, &newBase);
+		return;
 	}
 
 	/**
+	 * if a > c:
+	 * a ^ b mod c = (a mod c) ^ b
+	 * newbase = a mod c
+	 */
+	if (bn_cmp(a, c) == LARGER)
+	{
+		// newBase = a mod c
+		bn_mod(&newBase, a, c);
+	}
+
+	/**
+	 * if b == 0:
 	 * if c == 1:
 	 * a ^ 0 mod c = 0
 	 * else
@@ -300,15 +346,17 @@ void bn_qmod(bignum *res, bignum *a, bignum *b, bignum *c)
 	}
 
 	bn tmp_res(1);
-	for (int i = 0; i < BN_ARRAY_SIZE; i++)
+	for (int i = 0; i < b->size; ++i)
 	{
 		DTYPE pow = b->array[i];
 		if (pow == 0)
 		{
-			for (int j = 0; j < WORD_SIZE * 8; j++)
+			for (int j = 0; j < WORD_SIZE * 8; ++j)
 			{
-				bn_mul(a, a, a);
-				bn_mod(a, a, c);
+				// newBase = newBase ^ 2 mod c
+				// TODO: use montgomery to replace multmod
+				bn_mul(&newBase, &newBase, &newBase);
+				bn_mod(&newBase, &newBase, c);
 			}
 		}
 		else
@@ -317,11 +365,11 @@ void bn_qmod(bignum *res, bignum *a, bignum *b, bignum *c)
 			{
 				if (pow & 1)
 				{
-					bn_mul(&tmp_res, &tmp_res, a);
-					bn_mod(&tmp_res, &tmp_res, c);
+					bn_mul(&tmp_res, &tmp_res, &newBase);
+					bn_mod(&tmp_res, &tmp_res, &newBase);
 				}
-				bn_mul(a, a, a);
-				bn_mod(a, a, c);
+				bn_mul(&newBase, &newBase, &newBase);
+				bn_mod(&newBase, &newBase, c);
 				pow = pow >> 1;
 			}
 		}
@@ -501,6 +549,62 @@ void bn_ntt_mul(bn_ptr res, int &n, bn_ptr op1, int n1, bn_ptr op2, int n2)
 	res->size = n;
 }
 
+// Barrett Reduction
+// time complexity: O(2*(l+1)*(l+1))
+void BarrettReduction(bn_ptr res, bn_ptr a, bn_ptr b)
+{
+	// radix = 2
+	int bitnumA = a->getBitnum();
+	int k = b->getBitnum();
+	assert(2 * k >= bitnumA);
+
+	bn mu;
+	bn _k(k);		// k
+	bn _2k(2 * k);	// 2 * k
+	bn _k_1(k - 1); // k - 1
+	bn _k_2(k + 1); // k + 1
+
+	// mu = 2 ^ {2k} / b
+	// bn_pow(&mu, &two, &_2k); // TODO: 1 << 2k
+	bn_lshift_bits(&mu, &one, 2 * k);
+	bn_div(&mu, &mu, b);
+
+	bn q1;
+	bn q2;
+	bn q3;
+
+	// bn bk_1; // b ^ {k-1}
+	// bn bk_2; // b ^ {k+1}
+	// bn_pow(&bk_1, b, &_k_1);
+	// bn_pow(&bk_2, b, &_k_2);
+	//  q1 = a / b ^ {k-1}
+	//  bn_div(&q1, a, &bk_1); // TODO: a >> (k-1)
+	bn_rshift_bits(&q1, a, k - 1);
+	// q2 = q1 * mu
+	bn_mul(&q2, &q1, &mu);
+	// q3 = q2 / b ^ {k+1}
+	// bn_div(&q3, &q2, &bk_2); // TODO: q2 >> (k+1)
+	bn_rshift_bits(&q3, &q2, k + 1);
+
+	bn r1;
+	bn r2;
+	// r1 = x % b ^ {k+1}
+	// equals to: take the low k bits
+	// bn_mod(&r1, a, &bk_2);
+	bn_TakeLowBits(&r1, a, k);
+	bn q3m; // q3 * b
+	bn_mul(&q3m, &q3, b);
+	// r2 = (q3 * m) % b ^ {k+1}
+	// equals to: take the low k bits
+	// bn_mod(&r2, &q3m, &bk_2);
+	bn_TakeLowBits(&r2, &q3m, k);
+	bn_sub(res, &r1, &r2);
+	if (bn_cmp(res, b) == LARGER)
+	{
+		bn_sub(res, res, b);
+	}
+}
+
 /* Basic arithmetic operations for basic types: */
 int qmod(int a, int b, int M)
 {
@@ -574,19 +678,19 @@ void bn_setbit(const bn_ptr a, int n)
 void _bn_rshift(bn_ptr a, bn_ptr b, int nbits)
 {
 	/* Handle shift in multiples of word-size */
-	int nwords = nbits >> 5;
-	if (nwords != 0)
+	int nwords = nbits >> 5; // nbits / 32
+	if (nwords != 0)		 // rshift words
 	{
-		int z = nwords << 5;
+		int bitsMoved = nwords << 5;
 		_rshift_word(a, nwords);
-		nbits -= (z);
+		nbits -= bitsMoved;
 	}
 
 	if (nbits != 0)
 	{
 		int z = 32 - nbits;
 		int i;
-		for (i = 0; i < (BN_ARRAY_SIZE - 1); i++)
+		for (i = 0; i < BN_ARRAY_SIZE - 1; i++)
 		{
 			// a->array[i + 1] << (z) 即取高位的低32-nbits位
 			DTYPE higher = a->array[i + 1] << z;
@@ -595,6 +699,71 @@ void _bn_rshift(bn_ptr a, bn_ptr b, int nbits)
 		}
 		a->array[i] >>= nbits;
 	}
+}
+
+void bn_rshift_bits(bn_ptr res, bn_ptr a, int nbits)
+{
+	bn tmp(a);
+
+	// 1. find the startLimb and startSuffix
+	int startLimb = nbits >> 5;
+	// cout << "startLimb = " << startLimb << endl;
+	int startSuffix = nbits - (startLimb << 5);
+	// cout << "startSuffix = " << startSuffix << endl;
+
+	// 2. calculate the length to truncate
+	int highLen = startSuffix % 32; // higher limb
+	// cout << "highLen = " << highLen << endl;
+	int lowLen = 32 - highLen; // lower limb
+	// cout << "lowLen = " << lowLen << endl;
+
+	bn_assign(res, &zero);
+	int resLimb = 0;
+	for (int i = startLimb; i < BN_ARRAY_SIZE - 1; ++i)
+	{
+		res->array[resLimb] =
+			(tmp.array[i] >> highLen) | (tmp.array[i + 1] << lowLen);
+		resLimb++;
+	}
+	res->size = res->getSize();
+	res->bitnum = res->getBitnum();
+}
+
+void bn_lshift_bits(bn_ptr res, bn_ptr a, int nbits)
+{
+	bn tmp(a);
+
+	// 1. find the endLimb
+	int endLimb = BN_ARRAY_SIZE - 1 - (nbits >> 5);
+
+	// 2. calculate the length to truncate
+	int lowLen = nbits % 32;
+	int highLen = 32 - lowLen;
+
+	bn_assign(res, &zero);
+	int resLimb = BN_ARRAY_SIZE - 1;
+	for (int i = endLimb; i > 0; --i)
+	{
+		res->array[resLimb] =
+			(tmp.array[i] << lowLen) | (tmp.array[i - 1] >> highLen);
+		resLimb--;
+	}
+	res->array[resLimb] = tmp.array[0] << lowLen;
+	res->size = res->getSize();
+	res->bitnum = res->getBitnum();
+}
+
+void bn_TakeLowBits(bn_ptr res, bn_ptr a, int bitnum)
+{
+	bn tmp(a);
+	int highLimb = bitnum / (WORD_SIZE * 8);
+	int highSuffix = bitnum - highLimb * (WORD_SIZE * 8);
+	bn_assign(res, &zero);
+	for (int i = 0; i < highLimb; ++i)
+	{
+		res->array[i] = tmp.array[i];
+	}
+	res->array[highLimb] = tmp.array[highLimb] % (1 << highSuffix);
 }
 
 int bn_numbits(bignum *bn)
@@ -610,6 +779,10 @@ int bn_numbits(bignum *bn)
 		}
 	}
 	return 0;
+}
+
+void bn_getbits_toBignum(bn_ptr res, bn_ptr a, int startSuffix, int endSuffix)
+{
 }
 
 bool bn_is_zero(bignum *n)
