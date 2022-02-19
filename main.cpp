@@ -9,8 +9,6 @@
 
 using namespace std;
 
-
-
 int main()
 {
     // This function is used to test s1ome atomic operations
@@ -28,6 +26,7 @@ int main()
     */
 
     /* 2. montMult in MontG.cpp */
+    /*
     bn x(10);
     bn y(7);
     bn m(51);
@@ -41,7 +40,46 @@ int main()
     bn_print(&res1);
     cout << "gold:" << endl;
     bn_print(&res2);
+    */
 
+    /* 3. rshift and lshift */
+/*    
+    bn x;
+    x.array[0] = 1;
+    cout << "Origin number:" << endl;
+    bn_print(&x);
+
+    bn_rshift_bits(&x, &x, 700);
+    cout << "number after rshift" << endl;
+    bn_print(&x);
+
+    bn_lshift_bits(&x, &x, 10);
+    cout << "number after lshift" << endl;
+    bn_print(&x);
+*/    
+
+    /* 4. Take low k bits */
+/*
+    bn x;
+    x.array[0] = 6554;
+    x.array[1] = 257485;
+    x.array[2] = 58430;
+    x.array[3] = 354689;
+    bn_print(&x);
+    bn_TakeLowBits(&x, &x, 104);
+    bn_print(&x);
+*/
+
+    /* 5. barrett reduction */
+    
+    bn res;
+    bn a;
+    a.array[1] = 358;
+    bn b;
+    b.array[1] = 1;
+    BarrettReduction(&res, &a, &b);
+    bn_print(&res);
+    
     return 0;
 }
 
