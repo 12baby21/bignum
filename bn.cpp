@@ -300,7 +300,7 @@ void bn_mod(bignum *res, bignum *a, bignum *b)
 
 void bn_qmod(bignum *res, bignum *a, bignum *b, bignum *c)
 {
-	bignum newBase;
+	bn newBase;
 
 	/**
 	 * if a == c:
@@ -310,6 +310,7 @@ void bn_qmod(bignum *res, bignum *a, bignum *b, bignum *c)
 	 */
 	if (bn_cmp(a, c) == EQUAL || bn_cmp(a, &newBase) == EQUAL)
 	{
+		cout << "a == c" << endl;
 		bn_assign(res, &newBase);
 		return;
 	}
@@ -321,8 +322,16 @@ void bn_qmod(bignum *res, bignum *a, bignum *b, bignum *c)
 	 */
 	if (bn_cmp(a, c) == LARGER)
 	{
+		cout << "a > c" << endl;
 		// newBase = a mod c
-		bn_mod(&newBase, a, c);
+		if (newBase.getBitnum() < c->getBitnum() * 2)
+			BarrettReduction(&newBase, a, c);
+		else
+			bn_mod(&newBase, a, c);
+	}
+	else
+	{
+		bn_assign(&newBase, a);
 	}
 
 	/**
@@ -356,20 +365,34 @@ void bn_qmod(bignum *res, bignum *a, bignum *b, bignum *c)
 				// newBase = newBase ^ 2 mod c
 				// TODO: use montgomery to replace multmod
 				bn_mul(&newBase, &newBase, &newBase);
-				bn_mod(&newBase, &newBase, c);
+				if (newBase.getBitnum() < c->getBitnum() * 2)
+					BarrettReduction(&newBase, &newBase, c);
+				else
+					bn_mod(&newBase, &newBase, c);
 			}
 		}
 		else
 		{
 			while (pow)
 			{
+
 				if (pow & 1)
 				{
 					bn_mul(&tmp_res, &tmp_res, &newBase);
-					bn_mod(&tmp_res, &tmp_res, &newBase);
+					bn_mod(&tmp_res, &tmp_res, c);
+					bn_print(&tmp_res);
 				}
 				bn_mul(&newBase, &newBase, &newBase);
-				bn_mod(&newBase, &newBase, c);
+				if (newBase.getBitnum() < c->getBitnum() * 2)
+				{
+					cout << "br" << endl;
+					BarrettReduction(&newBase, &newBase, c);
+				}
+				else
+					bn_mod(&newBase, &newBase, c);
+				cout << "newBase2:" << endl;
+				bn_print(&newBase);
+
 				pow = pow >> 1;
 			}
 		}
@@ -555,7 +578,9 @@ void BarrettReduction(bn_ptr res, bn_ptr a, bn_ptr b)
 {
 	// radix = 2
 	int bitnumA = a->getBitnum();
+	cout << "bitnumA = " << bitnumA << endl;
 	int k = b->getBitnum();
+	cout << "k = " << k << endl;
 	assert(2 * k >= bitnumA);
 
 	bn mu;
@@ -580,6 +605,7 @@ void BarrettReduction(bn_ptr res, bn_ptr a, bn_ptr b)
 	//  q1 = a / b ^ {k-1}
 	//  bn_div(&q1, a, &bk_1); // TODO: a >> (k-1)
 	bn_rshift_bits(&q1, a, k - 1);
+
 	// q2 = q1 * mu
 	bn_mul(&q2, &q1, &mu);
 	// q3 = q2 / b ^ {k+1}
@@ -592,14 +618,23 @@ void BarrettReduction(bn_ptr res, bn_ptr a, bn_ptr b)
 	// equals to: take the low k bits
 	// bn_mod(&r1, a, &bk_2);
 	bn_TakeLowBits(&r1, a, k);
+
 	bn q3m; // q3 * b
 	bn_mul(&q3m, &q3, b);
 	// r2 = (q3 * m) % b ^ {k+1}
 	// equals to: take the low k bits
 	// bn_mod(&r2, &q3m, &bk_2);
 	bn_TakeLowBits(&r2, &q3m, k);
+
+	if (bn_cmp(&r1, &r2) == SMALLER)
+	{
+		bn b_k_1;
+		
+		bn_lshift_bits(&b_k_1, &one, k + 1);
+		bn_add(&r1, &r1, &b_k_1);
+	}
 	bn_sub(res, &r1, &r2);
-	if (bn_cmp(res, b) == LARGER)
+	while (bn_cmp(res, b) == LARGER || bn_cmp(res, b) == EQUAL)
 	{
 		bn_sub(res, res, b);
 	}

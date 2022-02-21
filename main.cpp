@@ -9,11 +9,12 @@
 
 using namespace std;
 
+
 int main()
 {
     // This function is used to test s1ome atomic operations
     /* 1. Fermat inverse */
-    /*
+/*
     bn p(13);
     for (int i = 7; i <= 89; i++)
     {
@@ -23,10 +24,10 @@ int main()
 
         bn_print(&inverse);
     }
-    */
+*/
 
     /* 2. montMult in MontG.cpp */
-    /*
+/*
     bn x(10);
     bn y(7);
     bn m(51);
@@ -40,7 +41,7 @@ int main()
     bn_print(&res1);
     cout << "gold:" << endl;
     bn_print(&res2);
-    */
+*/
 
     /* 3. rshift and lshift */
 /*    
@@ -71,20 +72,28 @@ int main()
 */
 
     /* 5. barrett reduction */
-    
+
     bn res;
-    bn a;
-    a.array[1] = 358;
-    bn b;
-    b.array[1] = 1;
+    bn a(146119744);
+    bn b(19789);
     BarrettReduction(&res, &a, &b);
     bn_print(&res);
-    
+
+
+    /* 6. bn_qmod */
+/*
+    bn res;
+    bn a(51666);
+    bn b(2);
+    bn c(19789);
+    bn_qmod(&res, &a, &b, &c);
+    bn_print(&res);
+*/
     return 0;
 }
 
-/**
- * invert module
+
+/*
 int main()
 {
     bn m(1);
@@ -123,7 +132,8 @@ int main()
 
     return 0;
 }
-**/
+*/
+
 /**
 int main()
 {

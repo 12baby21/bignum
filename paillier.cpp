@@ -35,19 +35,22 @@ void GenKey(uint64_t bits, bignum* n, bignum* g, bignum* lambda, bignum* mu, big
 void Encryption(bn_ptr c, bn_ptr m, bn_ptr g, bn_ptr n, bn_ptr n_2)
 {
     // Random Key
-    bignum r(2);
+    bn r(2);
 
     // gm = g^m mod n^2
     // rn = r^n mod n^2
-    bignum gm;
-    bignum rn;
-
+    bn gm;
+    bn rn;
     // c = g^m * r^n mod n^2 = (g^m mod n^2) * (r^n mod n^2) mod n^2
     // c = gm * rn mod n^2
     bn_qmod(&gm, g, m, n_2);
     bn_qmod(&rn, &r, n, n_2);
     bn_mul(c, &gm, &rn);
     bn_mod(c, c, n_2);
+    cout << "g^m:" << endl;
+    bn_print(&gm);
+    cout << "r^n:" << endl;
+    bn_print(&rn);
 }
 
 void Decryption(bn_ptr res, bn_ptr c, bn_ptr lambda, bn_ptr n, bn_ptr n_2)
