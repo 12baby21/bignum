@@ -72,13 +72,11 @@ int main()
 */
 
     /* 5. barrett reduction */
-
     bn res;
     bn a(146119744);
     bn b(19789);
     BarrettReduction(&res, &a, &b);
     bn_print(&res);
-
 
     /* 6. bn_qmod */
 /*

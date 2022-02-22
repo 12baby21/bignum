@@ -576,22 +576,17 @@ void bn_ntt_mul(bn_ptr res, int &n, bn_ptr op1, int n1, bn_ptr op2, int n2)
 // time complexity: O(2*(l+1)*(l+1))
 void BarrettReduction(bn_ptr res, bn_ptr a, bn_ptr b)
 {
-	// radix = 2
-	int bitnumA = a->getBitnum();
+	// radix >= 3, here we define radix = 32
+	int bitnumA = a->getSize();
 	cout << "bitnumA = " << bitnumA << endl;
-	int k = b->getBitnum();
+	int k = b->getSize();
 	cout << "k = " << k << endl;
 	assert(2 * k >= bitnumA);
 
 	bn mu;
-	bn _k(k);		// k
-	bn _2k(2 * k);	// 2 * k
-	bn _k_1(k - 1); // k - 1
-	bn _k_2(k + 1); // k + 1
-
 	// mu = 2 ^ {2k} / b
 	// bn_pow(&mu, &two, &_2k); // TODO: 1 << 2k
-	bn_lshift_bits(&mu, &one, 2 * k);
+	bn_lshift_bits(&mu, &one, 64 * k);
 	bn_div(&mu, &mu, b);
 
 	bn q1;
@@ -604,33 +599,31 @@ void BarrettReduction(bn_ptr res, bn_ptr a, bn_ptr b)
 	// bn_pow(&bk_2, b, &_k_2);
 	//  q1 = a / b ^ {k-1}
 	//  bn_div(&q1, a, &bk_1); // TODO: a >> (k-1)
-	bn_rshift_bits(&q1, a, k - 1);
+	bn_rshift_bits(&q1, a, 32 * (k - 1));
 
 	// q2 = q1 * mu
 	bn_mul(&q2, &q1, &mu);
 	// q3 = q2 / b ^ {k+1}
 	// bn_div(&q3, &q2, &bk_2); // TODO: q2 >> (k+1)
-	bn_rshift_bits(&q3, &q2, k + 1);
+	bn_rshift_bits(&q3, &q2, 32 * (k + 1));
 
 	bn r1;
 	bn r2;
 	// r1 = x % b ^ {k+1}
 	// equals to: take the low k bits
 	// bn_mod(&r1, a, &bk_2);
-	bn_TakeLowBits(&r1, a, k);
-
+	bn_TakeLowBits(&r1, a, k * 32);
 	bn q3m; // q3 * b
 	bn_mul(&q3m, &q3, b);
 	// r2 = (q3 * m) % b ^ {k+1}
 	// equals to: take the low k bits
 	// bn_mod(&r2, &q3m, &bk_2);
-	bn_TakeLowBits(&r2, &q3m, k);
+	bn_TakeLowBits(&r2, &q3m, k * 32);
 
 	if (bn_cmp(&r1, &r2) == SMALLER)
 	{
 		bn b_k_1;
-		
-		bn_lshift_bits(&b_k_1, &one, k + 1);
+		bn_lshift_bits(&b_k_1, &one, 32 * (k + 1));
 		bn_add(&r1, &r1, &b_k_1);
 	}
 	bn_sub(res, &r1, &r2);
@@ -738,6 +731,18 @@ void _bn_rshift(bn_ptr a, bn_ptr b, int nbits)
 
 void bn_rshift_bits(bn_ptr res, bn_ptr a, int nbits)
 {
+	if (nbits == 0)
+	{
+		bn_assign(res, a);
+		return;
+	}
+
+	if (nbits >= BITS)
+	{
+		bn_assign(res, &zero);
+		return;
+	}
+
 	bn tmp(a);
 
 	// 1. find the startLimb and startSuffix
@@ -766,6 +771,7 @@ void bn_rshift_bits(bn_ptr res, bn_ptr a, int nbits)
 
 void bn_lshift_bits(bn_ptr res, bn_ptr a, int nbits)
 {
+	// 1<<(x),x为一个变量，那么在移位前x会对32取模
 	bn tmp(a);
 
 	// 1. find the endLimb
@@ -780,7 +786,8 @@ void bn_lshift_bits(bn_ptr res, bn_ptr a, int nbits)
 	for (int i = endLimb; i > 0; --i)
 	{
 		res->array[resLimb] =
-			(tmp.array[i] << lowLen) | (tmp.array[i - 1] >> highLen);
+			((DTYPE)((DTYPE_TMP)tmp.array[i] << lowLen)) | ((long long)tmp.array[i - 1] >> highLen);
+
 		resLimb--;
 	}
 	res->array[resLimb] = tmp.array[0] << lowLen;
