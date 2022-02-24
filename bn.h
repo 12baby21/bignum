@@ -141,6 +141,10 @@ void _bn_rshift(bn_ptr a, bn_ptr b, int nbits);
 void bn_rshift_bits(bn_ptr res, bn_ptr a, int nbits);
 /* res = a << nbits */
 void bn_lshift_bits(bn_ptr res, bn_ptr a, int nbits);
+/* res = a << nwords */
+void bn_lshift_words(bn_ptr res, bn_ptr a, int nwords);
+/* res = a >> nwords */
+void bn_rshift_words(bn_ptr res, bn_ptr a, int nwords);
 /* res =  a[0, highbit)*/
 void bn_TakeLowBits(bn_ptr res, bn_ptr a, int highbit);
 

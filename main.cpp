@@ -44,18 +44,12 @@ int main()
 */
 
     /* 3. rshift and lshift */
-/*    
+/*
     bn x;
     x.array[0] = 1;
-    cout << "Origin number:" << endl;
     bn_print(&x);
-
-    bn_rshift_bits(&x, &x, 700);
-    cout << "number after rshift" << endl;
-    bn_print(&x);
-
-    bn_lshift_bits(&x, &x, 10);
-    cout << "number after lshift" << endl;
+    bn_lshift_words(&x, &x, 3);
+    bn_rshift_words(&x, &x, 3);
     bn_print(&x);
 */    
 
@@ -72,21 +66,24 @@ int main()
 */
 
     /* 5. barrett reduction */
-    bn res;
-    bn a(146119744);
-    bn b(19789);
-    BarrettReduction(&res, &a, &b);
-    bn_print(&res);
-
-    /* 6. bn_qmod */
 /*
     bn res;
+    bn a(146129344);
+    bn b(19789);
+    //BarrettReduction(&res, &a, &b);
+    bn_mod(&res, &a, &b);
+    bn_print(&res);
+
+
+    /* 6. bn_qmod */
+
+    bn res;
     bn a(51666);
-    bn b(2);
+    bn b(5);
     bn c(19789);
     bn_qmod(&res, &a, &b, &c);
     bn_print(&res);
-*/
+
     return 0;
 }
 

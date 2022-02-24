@@ -13,6 +13,7 @@
 #include "bn.h"
 #include "common.h"
 #include "primes.h"
+
 using namespace std;
 /* Functions for shifting number in-place. */
 static void _lshift_one_bit(bignum *a);
@@ -301,16 +302,14 @@ void bn_mod(bignum *res, bignum *a, bignum *b)
 void bn_qmod(bignum *res, bignum *a, bignum *b, bignum *c)
 {
 	bn newBase;
-
 	/**
 	 * if a == c:
 	 * a ^ b mod c = (a mod c) ^ b = 0
 	 * if a == 0:
 	 * 0 ^ b mod c = 0
 	 */
-	if (bn_cmp(a, c) == EQUAL || bn_cmp(a, &newBase) == EQUAL)
+	if (!bn_cmp(a, c) == LARGER)
 	{
-		cout << "a == c" << endl;
 		bn_assign(res, &newBase);
 		return;
 	}
@@ -322,9 +321,8 @@ void bn_qmod(bignum *res, bignum *a, bignum *b, bignum *c)
 	 */
 	if (bn_cmp(a, c) == LARGER)
 	{
-		cout << "a > c" << endl;
 		// newBase = a mod c
-		if (newBase.getBitnum() < c->getBitnum() * 2)
+		if (a->getBitnum() <= c->getBitnum() * 2)
 			BarrettReduction(&newBase, a, c);
 		else
 			bn_mod(&newBase, a, c);
@@ -578,55 +576,55 @@ void BarrettReduction(bn_ptr res, bn_ptr a, bn_ptr b)
 {
 	// radix >= 3, here we define radix = 32
 	int bitnumA = a->getSize();
-	cout << "bitnumA = " << bitnumA << endl;
 	int k = b->getSize();
-	cout << "k = " << k << endl;
-	assert(2 * k >= bitnumA);
 
 	bn mu;
 	// mu = 2 ^ {2k} / b
 	// bn_pow(&mu, &two, &_2k); // TODO: 1 << 2k
-	bn_lshift_bits(&mu, &one, 64 * k);
+	bn_lshift_words(&mu, &one, 2 * k);
 	bn_div(&mu, &mu, b);
 
 	bn q1;
 	bn q2;
 	bn q3;
 
-	// bn bk_1; // b ^ {k-1}
-	// bn bk_2; // b ^ {k+1}
-	// bn_pow(&bk_1, b, &_k_1);
-	// bn_pow(&bk_2, b, &_k_2);
-	//  q1 = a / b ^ {k-1}
-	//  bn_div(&q1, a, &bk_1); // TODO: a >> (k-1)
-	bn_rshift_bits(&q1, a, 32 * (k - 1));
+	// q1 = a / radix^{k-1}
+	bn_rshift_words(&q1, a, k - 1);
 
 	// q2 = q1 * mu
 	bn_mul(&q2, &q1, &mu);
+
 	// q3 = q2 / b ^ {k+1}
 	// bn_div(&q3, &q2, &bk_2); // TODO: q2 >> (k+1)
-	bn_rshift_bits(&q3, &q2, 32 * (k + 1));
+	bn_rshift_words(&q3, &q2, k + 1);
 
 	bn r1;
 	bn r2;
-	// r1 = x % b ^ {k+1}
+	// r1 = a % radix ^ {k+1}
 	// equals to: take the low k bits
 	// bn_mod(&r1, a, &bk_2);
 	bn_TakeLowBits(&r1, a, k * 32);
-	bn q3m; // q3 * b
+	
+	// q3 * b
+	bn q3m; 
 	bn_mul(&q3m, &q3, b);
 	// r2 = (q3 * m) % b ^ {k+1}
 	// equals to: take the low k bits
 	// bn_mod(&r2, &q3m, &bk_2);
 	bn_TakeLowBits(&r2, &q3m, k * 32);
 
+	// if(r1 < r2): r1 += radix^{k+1}
 	if (bn_cmp(&r1, &r2) == SMALLER)
 	{
 		bn b_k_1;
-		bn_lshift_bits(&b_k_1, &one, 32 * (k + 1));
+		bn_lshift_words(&b_k_1, &one, k + 1);
 		bn_add(&r1, &r1, &b_k_1);
 	}
+
+	// res = r1 - r2
 	bn_sub(res, &r1, &r2);
+
+	// (res = res - b) until (res < b)
 	while (bn_cmp(res, b) == LARGER || bn_cmp(res, b) == EQUAL)
 	{
 		bn_sub(res, res, b);
@@ -793,6 +791,53 @@ void bn_lshift_bits(bn_ptr res, bn_ptr a, int nbits)
 	res->array[resLimb] = tmp.array[0] << lowLen;
 	res->size = res->getSize();
 	res->bitnum = res->getBitnum();
+}
+
+void bn_lshift_words(bn_ptr res, bn_ptr a, int nwords)
+{
+	bn tmp(a);
+	if (nwords == 0)
+	{
+		bn_assign(res, a);
+		return;
+	}
+	bn_assign(res, &zero);
+	if (nwords >= BN_ARRAY_SIZE)
+	{
+		return;
+	}
+
+	int endLimb = BN_ARRAY_SIZE - nwords - 1;
+	int resLimb = BN_ARRAY_SIZE - 1;
+	for (int i = endLimb; i >= 0; i--)
+	{
+		res->array[resLimb] = tmp.array[i];
+		resLimb--;
+	}
+}
+
+void bn_rshift_words(bn_ptr res, bn_ptr a, int nwords)
+{
+	bn tmp(a);
+
+	if (nwords == 0)
+	{
+		bn_assign(res, a);
+		return;
+	}
+	bn_assign(res, &zero);
+	if (nwords >= BN_ARRAY_SIZE)
+	{
+		return;
+	}
+
+	int resLimb = 0;
+	int endLimb = nwords;
+	for (int i = endLimb; i < BN_ARRAY_SIZE; ++i)
+	{
+		res->array[resLimb] = tmp.array[i];
+		resLimb++;
+	}
 }
 
 void bn_TakeLowBits(bn_ptr res, bn_ptr a, int bitnum)
